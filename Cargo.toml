@@ -1,0 +1,22 @@
+[package]
+name = "signatrust"
+version = "0.1.0"
+edition = "2021"
+authors = ["TommyLike <tommylikehu@gmail.com"]
+categories = ["rpm", "efi", "ko", "signature"]
+description = """
+Signatrust provides a safe and high throughput solution for signing linux packages&binaries in Rust.
+"""
+documentation = "https://github.com/tommylike/signatrust/#readme"
+homepage = "https://github.com/tommylike/signatrust"
+keywords = ["rpm", "efi", "ko", "signature"]
+license = "GPL-3.0-or-later"
+readme = "README.md"
+repository = "https://github.com/tommylike/signatrust"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[build-dependencies]
+tonic-build = "0.8.4"
