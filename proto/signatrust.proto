@@ -5,10 +5,10 @@ package signatrust;
 
 // The Signatrust service definition.
 service Signatrust {
-  rpc SignStream(stream SingStreamRequest) returns (SignStreamResponse) {};
+  rpc SignStream(stream SignStreamRequest) returns (SignStreamResponse) {};
 }
 
-message SingStreamRequest {
+message SignStreamRequest {
   bytes data = 1;
   string key_id = 2;
 }

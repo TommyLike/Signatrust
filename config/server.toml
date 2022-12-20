@@ -1,0 +1,12 @@
+name = "application"
+server_tls_cert = ""
+server_tls_key = ""
+[data-server]
+server_ip = "0.0.0.0"
+server_port = "8080"
+[kms-provider]
+type = "huaweicloud"
+kms_id = "EDC55161-053B-4E1A-9A9A-459BAA497E90"
+[database]
+connection_url = ""
+max_connection = 5

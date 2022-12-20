@@ -1,0 +1,58 @@
+use clap::{Parser};
+use std::sync::{Arc, atomic::AtomicBool, RwLock};
+use std::time::Duration;
+use config::Config;
+use std::thread;
+use std::env;
+use clap::builder::Str;
+use crate::util::error::Result;
+
+mod util;
+mod server;
+mod service;
+mod infra;
+
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate lazy_static;
+
+#[derive(Parser)]
+#[command(name = "signatrust-data-server")]
+#[command(author = "TommyLike <tommylikehu@gmail.com>")]
+#[command(version = "0.10")]
+#[command(about = "Signatrust data server for binary signing", long_about = None)]
+pub struct App {
+    #[arg(short, long)]
+    #[arg(help = "path of configuration file, 'config/server.toml' relative to working directory be used in default")]
+    config: Option<String>,
+}
+
+lazy_static! {
+    pub static ref SIGNAL: Arc<AtomicBool> = {
+        let signal = Arc::new(AtomicBool::new(false));
+        //setup up signal handler
+        signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&signal)).unwrap();
+        signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&signal)).unwrap();
+        signal
+    };
+    pub static ref SERVERCONFIG: Arc<RwLock<Config>> = {
+        let app = App::parse();
+        let path = app.config.unwrap_or(format!("{}/{}", env::current_dir().unwrap().display(),
+            "config/server.toml"));
+        let server_config = util::config::ServerConfig::new(path);
+        server_config.watch(Arc::clone(&SIGNAL));
+        server_config.config
+    };
+}
+
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    //prepare config and logger
+    env_logger::init();
+    //server starts
+    let data_server = server::data_server::DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone()).unwrap();
+    data_server.run().await;
+    Ok(())
+}
