@@ -28,10 +28,10 @@ impl ServerConfig {
         let mut watcher: RecommendedWatcher = Watcher::new(
             tx,
             notify::Config::default().with_poll_interval(Duration::from_secs(5)),
-        ).unwrap();
+        ).expect("configure file watch failed to setup");
         thread::spawn(move || {
             watcher.watch(Path::new(watch_file.as_str()),
-                          RecursiveMode::NonRecursive, ).expect("watch configuration file successfully");
+                          RecursiveMode::NonRecursive, ).expect("failed to watch configuration file");
             //TODO: handle signal correctly
             while !signal.load(Ordering::Relaxed) {
                 match rx.recv() {
@@ -40,7 +40,7 @@ impl ServerConfig {
                               ..
                           })) => {
                         info!("server configuration changed ...");
-                        config.write().unwrap().refresh().expect("configuration file write successfully");
+                        config.write().unwrap().refresh().expect("failed to write configuration file");
                     }
                     Err(e) => error!("watch error: {:?}", e),
                     _ => {}

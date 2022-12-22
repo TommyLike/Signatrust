@@ -8,9 +8,11 @@ use reqwest::Error as RequestError;
 use std::net::AddrParseError;
 use tonic::transport::Error as TonicError;
 use reqwest::header::{InvalidHeaderValue, ToStrError as StrError};
+use std::num::ParseIntError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, ThisError)]
 pub enum Error {
     #[error("An error occurred in database operation. {0}")]
@@ -37,11 +39,18 @@ impl From<SqlxError> for Error {
             Some(db_error) => Error::DatabaseError(db_error.to_string()),
             None => {
                 error!("{:?}", sqlx_error);
-                Error::DatabaseError(format!("Unrecognized database error! {0}", sqlx_error.to_string()))
+                Error::DatabaseError(format!("Unrecognized database error! {:?}", sqlx_error))
             }
         }
     }
 }
+
+impl From<ParseIntError> for Error {
+    fn from(error: ParseIntError) -> Self {
+        Error::ConfigError(error.to_string())
+    }
+}
+
 
 impl<T> From<PoisonError<T>> for Error {
     fn from(error: PoisonError<T>) -> Self {

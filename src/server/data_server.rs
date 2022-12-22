@@ -63,7 +63,9 @@ impl DataServer {
         info!("encoded string {}", encoded);
         let decoded = kms_provider.decode(encoded).await?;
         info!("decoded string {}", decoded);
-        create_pool(&self.server_config.read()?.get_table("database")?).await?;
+        let database = self.server_config.read()?.get_table("database")?;
+        create_pool(&database).await?;
+
         //initialize signature plugins
 
 

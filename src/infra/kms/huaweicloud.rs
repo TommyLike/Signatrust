@@ -109,7 +109,7 @@ impl HuaweiCloudKMS {
         if res.status() != StatusCode::OK {
             return Err(Error::KMSInvokeError(format!("unable to encode/decode data in kms, result {}", res.status())))
         }
-        return Ok(res.json::<serde_json::Value>().await?);
+        Ok(res.json::<serde_json::Value>().await?)
     }
 }
 

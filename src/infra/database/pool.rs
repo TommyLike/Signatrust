@@ -10,8 +10,8 @@ pub type DbPool = Pool<MySql>;
 static DB_POOL: OnceCell<Result<DbPool>> = OnceCell::new();
 
 pub async fn create_pool(config: &HashMap<String, Value>) -> Result<()> {
-    let max_connections:u32 = config.get("max_connection").expect("max connection should configured").to_string().parse().unwrap();
-    if max_connections <= 0 {
+    let max_connections:u32 = config.get("max_connection").expect("max connection should configured").to_string().parse()?;
+    if max_connections == 0 {
         return Err(Error::ConfigError(format!("max connection for database is incorrect {}", max_connections)))
     }
     let db_connection = config.get("connection_url").expect("database connection url should configured").to_string();
