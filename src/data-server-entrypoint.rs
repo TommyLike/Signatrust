@@ -1,10 +1,7 @@
 use clap::{Parser};
 use std::sync::{Arc, atomic::AtomicBool, RwLock};
-use std::time::Duration;
 use config::Config;
-use std::thread;
 use std::env;
-use clap::builder::Str;
 use crate::util::error::Result;
 
 mod util;
@@ -32,16 +29,16 @@ lazy_static! {
     pub static ref SIGNAL: Arc<AtomicBool> = {
         let signal = Arc::new(AtomicBool::new(false));
         //setup up signal handler
-        signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&signal)).unwrap();
-        signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&signal)).unwrap();
+        signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&signal)).expect("failed to register sigterm signal");
+        signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&signal)).expect("failed to register sigint signal");
         signal
     };
     pub static ref SERVERCONFIG: Arc<RwLock<Config>> = {
         let app = App::parse();
-        let path = app.config.unwrap_or(format!("{}/{}", env::current_dir().unwrap().display(),
+        let path = app.config.unwrap_or(format!("{}/{}", env::current_dir().expect("current dir not found").display(),
             "config/server.toml"));
         let server_config = util::config::ServerConfig::new(path);
-        server_config.watch(Arc::clone(&SIGNAL));
+        server_config.watch(Arc::clone(&SIGNAL)).expect("failed to watch configure file");
         server_config.config
     };
 }
@@ -52,7 +49,7 @@ async fn main() -> Result<()> {
     //prepare config and logger
     env_logger::init();
     //server starts
-    let data_server = server::data_server::DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone()).unwrap();
-    data_server.run().await;
+    let data_server = server::data_server::DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone())?;
+    data_server.run().await?;
     Ok(())
 }

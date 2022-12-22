@@ -5,6 +5,7 @@ use std::sync::mpsc::channel;
 use std::time::Duration;
 use std::path::Path;
 use std::thread;
+use crate::util::error::Result;
 
 pub struct ServerConfig {
     pub config: Arc<RwLock<Config>>,
@@ -14,13 +15,13 @@ pub struct ServerConfig {
 impl ServerConfig {
     pub fn new(path: String) -> ServerConfig {
         let mut config = Config::default();
-        config.merge(File::with_name(path.as_str())).unwrap();
+        config.merge(File::with_name(path.as_str())).expect("load configuration file");
         ServerConfig {
             config: Arc::new(RwLock::new(config)),
             path
         }
     }
-    pub fn watch(&self, signal: Arc<AtomicBool>) {
+    pub fn watch(&self, signal: Arc<AtomicBool>) -> Result<()>{
         let (tx, rx) = channel();
         let watch_file = self.path.clone();
         let config = self.config.clone();
@@ -30,7 +31,7 @@ impl ServerConfig {
         ).unwrap();
         thread::spawn(move || {
             watcher.watch(Path::new(watch_file.as_str()),
-                          RecursiveMode::NonRecursive, ).unwrap();
+                          RecursiveMode::NonRecursive, ).expect("watch configuration file successfully");
             //TODO: handle signal correctly
             while !signal.load(Ordering::Relaxed) {
                 match rx.recv() {
@@ -39,7 +40,7 @@ impl ServerConfig {
                               ..
                           })) => {
                         info!("server configuration changed ...");
-                        config.write().unwrap().refresh().unwrap();
+                        config.write().unwrap().refresh().expect("configuration file write successfully");
                     }
                     Err(e) => error!("watch error: {:?}", e),
                     _ => {}
@@ -47,5 +48,6 @@ impl ServerConfig {
             }
             info!("signal received, will quit");
         });
+        Ok(())
     }
 }

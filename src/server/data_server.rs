@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::sync::{Arc, RwLock, atomic::AtomicBool};
 use config::Config;
 use std::fs;
@@ -30,22 +29,22 @@ impl DataServer {
             signal,
             server_identity:None,
         };
-        server.load().unwrap();
+        server.load()?;
         Ok(server)
     }
 
     fn load(&mut self) -> Result<()> {
-        if self.server_config.read().unwrap().get_string(
-            "server_tls_cert").unwrap().is_empty() ||
-            self.server_config.read().unwrap().get_string(
-                "server_tls_key").unwrap().is_empty() {
+        if self.server_config.read()?.get_string(
+            "server_tls_cert")?.is_empty() ||
+            self.server_config.read()?.get_string(
+                "server_tls_key")?.is_empty() {
             info!("tls key and cert not configured, data server tls will be disabled");
             return Ok(());
         }
         let key = fs::read(
-            self.server_config.read().unwrap().get_string("server_tls_key").unwrap())?;
+            self.server_config.read()?.get_string("server_tls_key")?)?;
         let cert = fs::read(
-            self.server_config.read().unwrap().get_string("server_tls_cert").unwrap())?;
+            self.server_config.read()?.get_string("server_tls_cert")?)?;
         self.server_identity = Some(Identity::from_pem(cert, key));
         Ok(())
     }
@@ -56,30 +55,35 @@ impl DataServer {
         info!("quit signal received...")
     }
 
-    pub async fn run(&self) {
+    pub async fn run(&self) -> Result<()>{
         //initialize database and kms backend
         let kms_provider = factory::KMSProviderFactory::new_provider(
-            &self.server_config.read().unwrap().get_table("kms-provider").unwrap()).unwrap();
-        create_pool(&self.server_config.read().unwrap().get_table("database").unwrap()).await.unwrap();
+            &self.server_config.read()?.get_table("kms-provider")?)?;
+        let encoded = kms_provider.encode("husheng".to_string()).await?;
+        info!("encoded string {}", encoded);
+        let decoded = kms_provider.decode(encoded).await?;
+        info!("decoded string {}", decoded);
+        create_pool(&self.server_config.read()?.get_table("database")?).await?;
         //initialize signature plugins
 
 
         //start grpc server
         let addr: SocketAddr = format!(
-            "{}:{}", self.server_config.read().unwrap().get_string("data-server.server_ip").unwrap(),
-            self.server_config.read().unwrap().get_string(
-                "data-server.server_port").unwrap()).parse().unwrap();
+            "{}:{}", self.server_config.read()?.get_string("data-server.server_ip")?,
+            self.server_config.read()?.get_string(
+                "data-server.server_port")?).parse()?;
 
         let mut server = Server::builder();
         info!("data server starts");
         if let Some(identity) = self.server_identity.clone() {
             server.tls_config(
-                ServerTlsConfig::new().identity(identity)).unwrap()
-                .add_service(get_grpc_service()).serve_with_shutdown(addr, self.shutdown_signal()).await.unwrap()
+                ServerTlsConfig::new().identity(identity))?
+                .add_service(get_grpc_service()).serve_with_shutdown(addr, self.shutdown_signal()).await?
         } else {
             server
-                .add_service(get_grpc_service()).serve_with_shutdown(addr, self.shutdown_signal()).await.unwrap()
+                .add_service(get_grpc_service()).serve_with_shutdown(addr, self.shutdown_signal()).await?
         }
+        Ok(())
     }
 }
 
