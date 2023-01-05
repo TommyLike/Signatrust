@@ -8,6 +8,7 @@ mod util;
 mod server;
 mod service;
 mod infra;
+mod model;
 
 #[macro_use]
 extern crate log;

@@ -15,6 +15,9 @@ use crate::service::grpc_service::get_grpc_service;
 use crate::infra::kms::factory;
 use crate::infra::database::pool::{create_pool, get_db_pool};
 use crate::util::error::Result;
+use crate::infra::database::model::clusterkey::repository;
+use crate::model::clusterkey::entity::ClusterKey;
+use crate::model::clusterkey::repository::Repository;
 
 pub struct DataServer {
     server_config: Arc<RwLock<Config>>,
@@ -65,6 +68,14 @@ impl DataServer {
         info!("decoded string {}", decoded);
         let database = self.server_config.read()?.get_table("database")?;
         create_pool(&database).await?;
+        //let repository  = repository::ClusterKeyRepository::new(get_db_pool()?);
+        // let cluster_key = ClusterKey::default();
+        // repository.create(&cluster_key).await?;
+        // let cluster_a = repository.get_latest().await?;
+        // println!("the latest cluster key is {:?}", cluster_a);
+        // let cluster_b = repository.get_by_id(cluster_a.id).await?;
+        // // println!("the 1st cluster key is {:?}", cluster_b.id);
+        // // repository.delete_by_id(1).await?;
 
         //initialize signature plugins
 

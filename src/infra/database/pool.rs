@@ -3,11 +3,12 @@ use sqlx::mysql::{MySqlPoolOptions, MySql};
 use std::{collections::HashMap};
 use once_cell::sync::OnceCell;
 use config::Value;
+use crate::util::error;
 
 use crate::util::error::{Error, Result};
 pub type DbPool = Pool<MySql>;
 
-static DB_POOL: OnceCell<Result<DbPool>> = OnceCell::new();
+static DB_POOL: OnceCell<DbPool> = OnceCell::new();
 
 pub async fn create_pool(config: &HashMap<String, Value>) -> Result<()> {
     let max_connections:u32 = config.get("max_connection").expect("max connection should configured").to_string().parse()?;
@@ -22,23 +23,30 @@ pub async fn create_pool(config: &HashMap<String, Value>) -> Result<()> {
         .max_connections(max_connections)
         .connect(db_connection.as_str())
         .await
-        .map_err(Error::from);
+        .map_err(Error::from)?;
     DB_POOL.set(pool).expect("db pool configured");
     ping().await?;
     Ok(())
 }
 
-pub async fn get_db_pool() -> &'static Result<DbPool> {
-    DB_POOL.get().expect("database pool is not initialized")
+pub fn get_db_pool() -> Result<DbPool> {
+    return match DB_POOL.get() {
+        None => {
+            Err(error::Error::DatabaseError("failed to get database pool".to_string()))
+        }
+        Some(pool) => {
+            Ok(pool.clone())
+        }
+    }
 }
 
 pub async fn ping() -> Result<()> {
     info!("Checking on database connection...");
-    let pool = get_db_pool().await.as_ref();
+    let pool = get_db_pool();
     match pool {
         Ok(pool) => {
             sqlx::query("SELECT 1")
-                .fetch_one(pool)
+                .fetch_one(&pool)
                 .await
                 .expect("Failed to PING database");
             info!("Database PING executed successfully!");

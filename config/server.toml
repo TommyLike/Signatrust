@@ -11,7 +11,7 @@ endpoint = "cn-north-4.myhuaweicloud.com"
 project_name = "cn-north-4"
 project_id = "25f40abeecb84d3e90731de258ca71ec"
 username = "freesky-edward"
-password = "ddhjx@1234!@#$"
+password = ""
 domain="freesky-edward"
 [database]
 connection_url = "mysql://test:test@127.0.0.1:3306/signatrust"
