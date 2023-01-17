@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use std::str::FromStr;
-use config::Value;
 use crate::infra::kms::huaweicloud::HuaweiCloudKMS;
 use crate::infra::kms::kms_provider::KMSProvider;
-use crate::util::error::{Result, Error};
+use crate::util::error::{Error, Result};
+use config::Value;
+use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -17,17 +17,22 @@ impl FromStr for KMSType {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "huaweicloud" => Ok(KMSType::HuaweiCloud),
-            _ => Err(Error::UnsupportedTypeError(format!("{} kms type", s)))
+            _ => Err(Error::UnsupportedTypeError(format!("{} kms type", s))),
         }
     }
 }
-
 
 pub struct KMSProviderFactory {}
 
 impl KMSProviderFactory {
     pub fn new_provider(config: &HashMap<String, Value>) -> Result<Arc<Box<dyn KMSProvider>>> {
-        let kms_type = KMSType::from_str(config.get("type").unwrap_or(&Value::default()).to_string().as_str())?;
+        let kms_type = KMSType::from_str(
+            config
+                .get("type")
+                .unwrap_or(&Value::default())
+                .to_string()
+                .as_str(),
+        )?;
         info!("kms provider configured with {:?}", kms_type);
         match kms_type {
             KMSType::HuaweiCloud => Ok(Arc::new(Box::new(HuaweiCloudKMS::new(config)?))),

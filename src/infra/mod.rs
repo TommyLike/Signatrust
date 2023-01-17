@@ -1,2 +1,3 @@
-pub mod kms;
+pub mod cipher;
 pub mod database;
+pub mod kms;

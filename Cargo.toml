@@ -37,6 +37,12 @@ once_cell = "1.16.0"
 reqwest = { version = "0.11.13", features=["json"]}
 serde_json = "1.0.91"
 serde = "1.0.151"
+aes-gcm-siv = "0.11.1"
+aes-gcm = "0.10.1"
+rand="0.8.5"
+generic-array = "0.14.6"
+chrono = { version = "0.4.23", features = ["clock"]}
+hex = "0.4.3"
 
 [build-dependencies]
 tonic-build = "0.8.4"
@@ -47,8 +53,8 @@ path = "src/client.rs"
 
 [[bin]]
 name = "data-server"
-path = "src/data-server-entrypoint.rs"
+path = "src/data_server_entrypoint.rs"
 
 [[bin]]
 name = "control-server"
-path = "src/control-server-entrypoint.rs"
+path = "src/control_server_entrypoint.rs"

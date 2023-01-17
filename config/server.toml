@@ -16,3 +16,6 @@ domain="freesky-edward"
 [database]
 connection_url = "mysql://test:test@127.0.0.1:3306/signatrust"
 max_connection = 5
+[encryption-engine]
+keep_in_days = 180
+algorithm = "aes256gsm"

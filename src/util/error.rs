@@ -1,14 +1,15 @@
+use config::ConfigError;
+use reqwest::header::{InvalidHeaderValue, ToStrError as StrError};
+use reqwest::Error as RequestError;
+use serde_json::Error as SerdeError;
 use sqlx::Error as SqlxError;
 use std::io::Error as IOError;
-use thiserror::Error as ThisError;
-use config::ConfigError as ConfigError;
-use std::sync::PoisonError;
-use serde_json::Error as SerdeError;
-use reqwest::Error as RequestError;
 use std::net::AddrParseError;
-use tonic::transport::Error as TonicError;
-use reqwest::header::{InvalidHeaderValue, ToStrError as StrError};
 use std::num::ParseIntError;
+use std::string::FromUtf8Error;
+use std::sync::PoisonError;
+use thiserror::Error as ThisError;
+use tonic::transport::Error as TonicError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -30,7 +31,11 @@ pub enum Error {
     #[error("failed to perform http request. {0}")]
     HttpRequest(String),
     #[error("failed to convert. {0}")]
-    ConvertError(String)
+    ConvertError(String),
+    #[error("failed to encode/decode. {0}")]
+    EncodeError(String),
+    #[error("failed to get cluster key. {0}")]
+    ClusterError(String),
 }
 
 impl From<SqlxError> for Error {
@@ -50,7 +55,6 @@ impl From<ParseIntError> for Error {
         Error::ConfigError(error.to_string())
     }
 }
-
 
 impl<T> From<PoisonError<T>> for Error {
     fn from(error: PoisonError<T>) -> Self {
@@ -100,9 +104,8 @@ impl From<TonicError> for Error {
     }
 }
 
-
-
-
-
-
-
+impl From<FromUtf8Error> for Error {
+    fn from(error: FromUtf8Error) -> Self {
+        Error::ConvertError(error.to_string())
+    }
+}

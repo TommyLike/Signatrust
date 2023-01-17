@@ -1,14 +1,14 @@
-use clap::{Parser};
-use std::sync::{Arc, atomic::AtomicBool, RwLock};
+use crate::util::error::Result;
+use clap::Parser;
 use config::Config;
 use std::env;
-use crate::util::error::Result;
+use std::sync::{atomic::AtomicBool, Arc, RwLock};
 
-mod util;
-mod server;
-mod service;
 mod infra;
 mod model;
+mod server;
+mod service;
+mod util;
 
 #[macro_use]
 extern crate log;
@@ -22,7 +22,9 @@ extern crate lazy_static;
 #[command(about = "Signatrust data server for binary signing", long_about = None)]
 pub struct App {
     #[arg(short, long)]
-    #[arg(help = "path of configuration file, 'config/server.toml' relative to working directory be used in default")]
+    #[arg(
+        help = "path of configuration file, 'config/server.toml' relative to working directory be used in default"
+    )]
     config: Option<String>,
 }
 
@@ -43,7 +45,6 @@ lazy_static! {
         server_config.config
     };
 }
-
 
 #[tokio::main]
 async fn main() -> Result<()> {
