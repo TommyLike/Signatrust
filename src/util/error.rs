@@ -1,4 +1,6 @@
 use config::ConfigError;
+use pgp::composed::key::SecretKeyParamsBuilderError;
+use pgp::errors::Error as PGPError;
 use reqwest::header::{InvalidHeaderValue, ToStrError as StrError};
 use reqwest::Error as RequestError;
 use serde_json::Error as SerdeError;
@@ -36,6 +38,14 @@ pub enum Error {
     EncodeError(String),
     #[error("failed to get cluster key. {0}")]
     ClusterError(String),
+    #[error("failed to serialize/deserialize key. {0}")]
+    KeyParseError(String),
+    #[error("failed to sign with key {0}. {1}")]
+    SignError(String, String),
+    #[error("failed to perform pgp {0}")]
+    PGPInvokeError(String),
+    #[error("invalid parameter error {0}")]
+    ParameterError(String),
 }
 
 impl From<SqlxError> for Error {
@@ -107,5 +117,17 @@ impl From<TonicError> for Error {
 impl From<FromUtf8Error> for Error {
     fn from(error: FromUtf8Error) -> Self {
         Error::ConvertError(error.to_string())
+    }
+}
+
+impl From<PGPError> for Error {
+    fn from(error: PGPError) -> Self {
+        Error::PGPInvokeError(error.to_string())
+    }
+}
+
+impl From<SecretKeyParamsBuilderError> for Error {
+    fn from(error: SecretKeyParamsBuilderError) -> Self {
+        Error::PGPInvokeError(error.to_string())
     }
 }

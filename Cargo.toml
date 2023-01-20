@@ -43,6 +43,9 @@ rand="0.8.5"
 generic-array = "0.14.6"
 chrono = { version = "0.4.23", features = ["clock"]}
 hex = "0.4.3"
+pgp = "0.9.0"
+smallvec = "1.10.0"
+validator = { version = "0.16", features = ["derive"] }
 
 [build-dependencies]
 tonic-build = "0.8.4"

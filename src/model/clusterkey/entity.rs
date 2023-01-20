@@ -30,10 +30,8 @@ impl Display for ClusterKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "id: {}, data: {}, algorithm: {}",
-            self.id,
-            key::encode_u8_to_hex_string(&self.data),
-            self.algorithm
+            "id: {}, data: ******, algorithm: {}",
+            self.id, self.algorithm
         )
     }
 }
@@ -41,11 +39,7 @@ impl Display for ClusterKey {
 impl ClusterKey {
     pub fn new(data: Vec<u8>, algorithm: String, keep_in_days: i64) -> Result<Self> {
         let now = Utc::now();
-        let identity = format!(
-            "{}-{}",
-            algorithm,
-            now.format("%d-%m-%Y")
-        );
+        let identity = format!("{}-{}", algorithm, now.format("%d-%m-%Y"));
         Ok(ClusterKey {
             id: 0,
             data,

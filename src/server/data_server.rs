@@ -1,4 +1,5 @@
 use config::Config;
+use std::collections::HashMap;
 use std::fs;
 use std::net::SocketAddr;
 use std::sync::atomic::Ordering;
@@ -14,11 +15,16 @@ use tonic::{
 use crate::infra::cipher::algorithm::{aes::Aes256GcmEncryptor, traits::Encryptor};
 use crate::infra::cipher::engine::{EncryptionEngine, EncryptionEngineWithClusterKey};
 use crate::infra::database::model::clusterkey::repository;
+use crate::infra::database::model::datakey::repository as datakeyRepository;
 use crate::infra::database::pool::{create_pool, get_db_pool};
 use crate::infra::kms::factory;
+use crate::infra::sign::signers::Signers;
 use crate::model::clusterkey::entity::ClusterKey;
 use crate::model::clusterkey::repository::Repository;
+use crate::model::datakey::entity::{DataKey, KeyType};
+use crate::model::datakey::repository::Repository as DatakeyRepository;
 use crate::service::grpc_service::get_grpc_service;
+use crate::util::error::Error::KeyParseError;
 use crate::util::error::Result;
 
 pub struct DataServer {
@@ -87,6 +93,50 @@ impl DataServer {
         let value = vec![1, 2, 3, 4];
         let result = engine.encode(value).await?;
         let value2 = engine.decode(result).await?;
+        let data_repository = datakeyRepository::EncryptedDataKeyRepository::new(
+            get_db_pool()?,
+            Arc::new(Box::new(engine)),
+        );
+        let mut parmaters: HashMap<String, String> = HashMap::new();
+        parmaters.insert("name".to_string(), "openEuler".to_string());
+        parmaters.insert("email".to_string(), "contact@openeuler.org".to_string());
+        parmaters.insert("key_type".to_string(), "rsa".to_string());
+        parmaters.insert("key_length".to_string(), "2048".to_string());
+        let (private_key, public_key, certificate) =
+            Signers::generate_keys(KeyType::OpenPGP, parmaters)?;
+        println!("starting to save data keys");
+        let mut data_key = DataKey {
+            id: 0,
+            name: "openEuler".to_string(),
+            description: "openEuler".to_string(),
+            user: "121".to_string(),
+            email: "12121".to_string(),
+            attributes: HashMap::new(),
+            key_type: KeyType::OpenPGP,
+            private_key: vec![],
+            public_key: vec![],
+            certificate: vec![],
+            create_at: Default::default(),
+            expire_at: Default::default(),
+        };
+        match private_key {
+            Some(k) => {
+                data_key.private_key = k;
+            }
+            _ => {}
+        }
+        match public_key {
+            Some(k) => {
+                data_key.public_key = k;
+            }
+            _ => {}
+        }
+        data_repository.create(&data_key).await?;
+        let data_key = data_repository.get_by_id(1).await?;
+        let mut signer = Signers::load_from_data_key(data_key)?;
+        let content = vec![1, 2, 3, 4];
+        let result = signer.sign(content);
+
         //start grpc server
         let addr: SocketAddr = format!(
             "{}:{}",
