@@ -21,6 +21,9 @@ use std::io::{Cursor, Read};
 use std::str::from_utf8;
 use std::str::FromStr;
 use validator::{Validate, ValidationError};
+use pgp::composed::StandaloneSignature;
+
+const DETACHED_SIGNATURE: &str = "detached";
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct KeyGenerationParameter {
@@ -126,7 +129,7 @@ impl SignPlugins for OpenPGPPlugin {
         ))
     }
 
-    fn sign(&self, content: Vec<u8>) -> Result<Vec<u8>> {
+    fn sign(&self, content: Vec<u8>, options: HashMap<String, String>) -> Result<Vec<u8>> {
         let passwd_fn = String::new;
         let now = Utc::now();
         let sig_cfg = SignatureConfig {
@@ -148,6 +151,14 @@ impl SignPlugins for OpenPGPPlugin {
             .sign(&self.secret_key, passwd_fn, read_cursor)
             .map_err(|e| Error::SignError(self.identity.clone(), e.to_string()))?;
 
+
+        //detached signature
+        if let Some(detached) = options.get(DETACHED_SIGNATURE) {
+            if detached == "true" {
+                let standard_signature = StandaloneSignature::new(signature_packet);
+                return Ok(standard_signature.to_armored_bytes(None)?)
+            }
+        }
         let mut signature_bytes = Vec::with_capacity(1024);
         let mut cursor = Cursor::new(&mut signature_bytes);
         write_packet(&mut cursor, &signature_packet)

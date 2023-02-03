@@ -18,5 +18,5 @@ pub trait SignPlugins: Send + Sync {
     ) -> Result<(Option<Vec<u8>>, Option<Vec<u8>>, Option<Vec<u8>>)>
     where
         Self: Sized;
-    fn sign(&self, content: Vec<u8>) -> Result<Vec<u8>>;
+    fn sign(&self, content: Vec<u8>, options: HashMap<String, String>) -> Result<Vec<u8>>;
 }

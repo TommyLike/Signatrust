@@ -16,14 +16,14 @@ use tonic::transport::Error as TonicError;
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, ThisError)]
+#[derive(Debug, ThisError, Clone)]
 pub enum Error {
     #[error("An error occurred in database operation. {0}")]
     DatabaseError(String),
     #[error("An error occurred when loading configure file. {0}")]
     ConfigError(String),
-    #[error(transparent)]
-    IOError(#[from] IOError),
+    #[error("An error occurred when perform IO requests. {0}")]
+    IOError(String),
     #[error("unsupported type configured. {0}")]
     UnsupportedTypeError(String),
     #[error("kms invoke error. {0}")]
@@ -46,6 +46,20 @@ pub enum Error {
     PGPInvokeError(String),
     #[error("invalid parameter error {0}")]
     ParameterError(String),
+
+    //client error
+    #[error("file type not supported {0}")]
+    FileNotSupportError(String),
+    #[error("not any valid file found")]
+    NoFileCandidateError,
+    #[error("failed to split file: {0}")]
+    SplitFileError(String),
+    #[error("failed to remote sign file: {0}")]
+    RemoteSignError(String),
+    #[error("failed to assemble file: {0}")]
+    AssembleFileError(String),
+    #[error("failed to walk through directory: {0}")]
+    WalkDirectoryError(String),
 }
 
 impl From<SqlxError> for Error {
@@ -65,6 +79,13 @@ impl From<ParseIntError> for Error {
         Error::ConfigError(error.to_string())
     }
 }
+
+impl From<IOError> for Error {
+    fn from(error: IOError) -> Self {
+        Error::IOError(error.to_string())
+    }
+}
+
 
 impl<T> From<PoisonError<T>> for Error {
     fn from(error: PoisonError<T>) -> Self {
@@ -129,5 +150,11 @@ impl From<PGPError> for Error {
 impl From<SecretKeyParamsBuilderError> for Error {
     fn from(error: SecretKeyParamsBuilderError) -> Self {
         Error::PGPInvokeError(error.to_string())
+    }
+}
+
+impl From<walkdir::Error> for Error {
+    fn from(err: walkdir::Error) -> Self {
+        Error::WalkDirectoryError(err.to_string())
     }
 }

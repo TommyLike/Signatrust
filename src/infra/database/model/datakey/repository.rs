@@ -54,9 +54,10 @@ impl Repository for EncryptedDataKeyRepository {
         Ok(dto.decrypt(self.encryption_engine.clone()).await?)
     }
 
-    async fn get_by_name(&self, name: String) -> Result<DataKey> {
-        let dto: DataKeyDTO = sqlx::query_as("SELECT * FROM data_key WHERE name = ?")
+    async fn get_by_type_and_name(&self, key_type: String, name: String) -> Result<DataKey> {
+        let dto: DataKeyDTO = sqlx::query_as("SELECT * FROM data_key WHERE name = ? AND key_type = ?")
             .bind(name)
+            .bind(key_type)
             .fetch_one(&self.db_pool)
             .await?;
         Ok(dto.decrypt(self.encryption_engine.clone()).await?)

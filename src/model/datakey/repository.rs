@@ -6,6 +6,6 @@ use async_trait::async_trait;
 pub trait Repository: Send + Sync {
     async fn create(&self, data_key: &DataKey) -> Result<()>;
     async fn get_by_id(&self, id: i32) -> Result<DataKey>;
-    async fn get_by_name(&self, name: String) -> Result<DataKey>;
+    async fn get_by_type_and_name(&self, key_type: String, name: String) -> Result<DataKey>;
     async fn delete_by_id(&self, id: i32) -> Result<()>;
 }

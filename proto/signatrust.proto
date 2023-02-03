@@ -10,11 +10,13 @@ service Signatrust {
 
 message SignStreamRequest {
   bytes data = 1;
-  string key_id = 2;
+  string key_type = 2;
+  string key_id = 3;
+  map<string, string> options = 4;
 }
 
 message SignStreamResponse {
-  string signature = 1;
-  int32 error_code = 2;
+  bytes signature = 1;
+  string error = 2;
 }
 

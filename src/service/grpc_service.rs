@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+use std::hash::Hash;
 use md5::{Digest, Md5};
+use std::sync::Arc;
 pub mod signatrust {
     tonic::include_proto!("signatrust");
 }
@@ -9,12 +12,25 @@ use signatrust::{
     SignStreamResponse,
 };
 use tonic::{Request, Response, Status, Streaming};
+use crate::infra::database::model::datakey::repository::EncryptedDataKeyRepository;
+use crate::infra::sign::signers::Signers;
+use crate::model::datakey::repository::Repository;
+use crate::util::error::Result as InnerResult;
 
-pub struct SignService {}
+pub struct SignService {
+    data_key_repository: Arc<EncryptedDataKeyRepository>
+}
 
 impl SignService {
-    pub fn new() -> SignService {
-        SignService {}
+    pub fn new(data_key_repository: Arc<EncryptedDataKeyRepository>) -> SignService {
+        SignService {
+            data_key_repository
+        }
+    }
+    async fn sign_stream_inner(&self, key_type: String, key_name: String, options: &HashMap<String, String>, data: &Vec<u8>) -> InnerResult<Vec<u8>> {
+        let key = self.data_key_repository.get_by_type_and_name(key_type, key_name).await?;
+        let signer = Signers::load_from_data_key(key)?;
+        signer.sign(data.clone(), options.clone())
     }
 }
 
@@ -25,19 +41,35 @@ impl Signatrust for SignService {
         request: Request<Streaming<SignStreamRequest>>,
     ) -> Result<Response<SignStreamResponse>, Status> {
         let mut binaries = request.into_inner();
-        let mut hasher = Md5::new();
+        let mut data: Vec<u8> = vec![];
+        let mut key_name: String = "".to_string();
+        let mut key_type: String = "".to_string();
+        let mut options: HashMap<String, String> = HashMap::new();
         while let Some(content) = binaries.next().await {
-            hasher.update(&content.unwrap().data)
+            let mut inner_result = content.unwrap();
+            data.append(&mut inner_result.data);
+            key_name = inner_result.key_id;
+            key_type = inner_result.key_type;
+            options = inner_result.options;
         }
-        let hash_result = hasher.finalize();
-        Ok(Response::new(SignStreamResponse {
-            signature: format!("{:x}", hash_result),
-            error_code: 0,
-        }))
+        match self.sign_stream_inner(key_type, key_name, &options, &data).await {
+            Ok(content) => {
+                Ok(Response::new(SignStreamResponse {
+                    signature: content,
+                    error: "".to_string()
+                }))
+            }
+            Err(err) => {
+                Ok(Response::new(SignStreamResponse {
+                    signature: vec![],
+                    error: err.to_string(),
+                }))
+            }
+        }
     }
 }
 
-pub fn get_grpc_service() -> SignatrustServer<SignService> {
-    let app = SignService::new();
+pub fn get_grpc_service(data_key_repository: Arc<EncryptedDataKeyRepository>) -> SignatrustServer<SignService> {
+    let app = SignService::new(data_key_repository);
     SignatrustServer::new(app)
 }

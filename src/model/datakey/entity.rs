@@ -16,8 +16,8 @@ impl FromStr for KeyType {
 
     fn from_str(s: &str) -> Result<Self> {
         match s {
-            "openpgp" => Ok(KeyType::OpenPGP),
-            _ => Err(Error::UnsupportedTypeError(format!("{} data key type", s))),
+            "pgp" => Ok(KeyType::OpenPGP),
+            _ => Err(Error::UnsupportedTypeError(format!("unsupported data key type {}", s))),
         }
     }
 }
@@ -25,7 +25,7 @@ impl FromStr for KeyType {
 impl Display for KeyType {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            KeyType::OpenPGP => write!(f, "openpgp"),
+            KeyType::OpenPGP => write!(f, "pgp"),
         }
     }
 }

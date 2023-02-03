@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
     //prepare config and logger
     env_logger::init();
     //server starts
-    let data_server = server::data_server::DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone())?;
+    let data_server = server::data_server::DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone()).await?;
     data_server.run().await?;
     Ok(())
 }
