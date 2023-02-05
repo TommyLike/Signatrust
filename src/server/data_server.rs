@@ -150,7 +150,7 @@ impl DataServer {
         }
         //self.data_key_repository.create(&data_key).await?;
         let data_key = self.data_key_repository.get_by_id(1).await?;
-        println!("{}", String::from_utf8_lossy(&data_key.public_key).to_string());
+        println!("{}", String::from_utf8_lossy(&data_key.public_key));
         // let content = vec![1, 2, 3, 4];
         // let result = signer.sign(content);
 
@@ -169,7 +169,6 @@ impl DataServer {
         let mut server = Server::builder();
         info!("data server starts");
         if let Some(identity) = self.server_identity.clone() {
-            info!("data server starts1");
             server
                 .tls_config(ServerTlsConfig::new().identity(identity))?
                 .add_service(get_grpc_service(self.data_key_repository.clone()))
@@ -177,7 +176,6 @@ impl DataServer {
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         } else {
-            info!("data server starts2");
             server
                 .add_service(get_grpc_service(self.data_key_repository.clone()))
                 //.serve(addr)

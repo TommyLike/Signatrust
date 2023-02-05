@@ -24,7 +24,6 @@ pub trait SignHandler {
                 _ => {}
             };
         }
-        ()
     }
     //NOTE: instead of raise out error for specific sign object out of method, we need record error inside of the SignIdentity object.
     async fn process(&mut self, handler: Box<dyn FileHandler>, item: SignIdentity) -> SignIdentity;

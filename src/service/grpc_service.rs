@@ -16,21 +16,22 @@ use crate::infra::database::model::datakey::repository::EncryptedDataKeyReposito
 use crate::infra::sign::signers::Signers;
 use crate::model::datakey::repository::Repository;
 use crate::util::error::Result as InnerResult;
+use crate::util::signer_container::SignerContainer;
 
 pub struct SignService {
-    data_key_repository: Arc<EncryptedDataKeyRepository>
+    data_key_repository: Arc<EncryptedDataKeyRepository>,
+    container: SignerContainer
 }
 
 impl SignService {
     pub fn new(data_key_repository: Arc<EncryptedDataKeyRepository>) -> SignService {
         SignService {
-            data_key_repository
+            data_key_repository: data_key_repository.clone(),
+            container: SignerContainer::new(data_key_repository),
         }
     }
-    async fn sign_stream_inner(&self, key_type: String, key_name: String, options: &HashMap<String, String>, data: &Vec<u8>) -> InnerResult<Vec<u8>> {
-        let key = self.data_key_repository.get_by_type_and_name(key_type, key_name).await?;
-        let signer = Signers::load_from_data_key(key)?;
-        signer.sign(data.clone(), options.clone())
+    async fn sign_stream_inner(&self, key_type: String, key_name: String, options: &HashMap<String, String>, data: Vec<u8>) -> InnerResult<Vec<u8>> {
+        self.container.get_signer(key_type, key_name).await?.sign(data.clone(), options.clone())
     }
 }
 
@@ -52,7 +53,7 @@ impl Signatrust for SignService {
             key_type = inner_result.key_type;
             options = inner_result.options;
         }
-        match self.sign_stream_inner(key_type, key_name, &options, &data).await {
+        match self.sign_stream_inner(key_type, key_name, &options, data).await {
             Ok(content) => {
                 Ok(Response::new(SignStreamResponse {
                     signature: content,
