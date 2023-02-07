@@ -10,6 +10,7 @@ use std::net::AddrParseError;
 use std::num::ParseIntError;
 use std::string::FromUtf8Error;
 use std::sync::PoisonError;
+use rpm::RPMError;
 use thiserror::Error as ThisError;
 use tonic::transport::Error as TonicError;
 
@@ -60,6 +61,8 @@ pub enum Error {
     AssembleFileError(String),
     #[error("failed to walk through directory: {0}")]
     WalkDirectoryError(String),
+    #[error("failed to parse rpm file: {0}")]
+    RpmParseError(String),
 }
 
 impl From<SqlxError> for Error {
@@ -156,5 +159,11 @@ impl From<SecretKeyParamsBuilderError> for Error {
 impl From<walkdir::Error> for Error {
     fn from(err: walkdir::Error) -> Self {
         Error::WalkDirectoryError(err.to_string())
+    }
+}
+
+impl From<RPMError> for Error {
+    fn from(err: RPMError) -> Self {
+        Error::RpmParseError(err.to_string())
     }
 }
