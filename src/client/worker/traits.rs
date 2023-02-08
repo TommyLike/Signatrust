@@ -17,12 +17,9 @@ pub trait SignHandler {
         } else {
             let handler = FileHandlerFactory::get_handler(item.file_type.clone());
             let updated = self.process(handler, item).await;
-            match sender.send(updated).await {
-                Err(err) => {
-                    error!("failed to send sign object into channel: {}", err);
-                }
-                _ => {}
-            };
+            if let Err(err) = sender.send(updated).await {
+                error!("failed to send sign object into channel: {}", err);
+            }
         }
     }
     //NOTE: instead of raise out error for specific sign object out of method, we need record error inside of the SignIdentity object.

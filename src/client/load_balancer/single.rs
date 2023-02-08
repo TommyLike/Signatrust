@@ -1,21 +1,24 @@
-use tonic::transport::Channel;
+use tonic::transport::{Channel, Certificate, ClientTlsConfig, Identity};
 use super::traits::DynamicLoadBalancer;
 use tokio::time::{sleep, Duration};
 use crate::util::error::Result;
 use tonic::transport::Endpoint;
 use async_trait::async_trait;
+use tokio::fs;
 
 pub struct SingleLoadBalancer {
     server: String,
-    port: String
+    port: String,
+    client_config: Option<ClientTlsConfig>
 }
 
 impl SingleLoadBalancer {
-    pub(crate) fn new(server: String, port: String) -> Self {
-        Self {
+    pub fn new(server: String, port: String, client_config: Option<ClientTlsConfig>) -> Result<Self> {
+        Ok(Self {
             server,
-            port
-        }
+            port,
+            client_config
+        })
     }
 
 }
@@ -23,15 +26,11 @@ impl SingleLoadBalancer {
 #[async_trait]
 impl DynamicLoadBalancer for SingleLoadBalancer {
     fn get_transport_channel(&self) -> Result<Channel> {
-        let endpoint = Endpoint::from_shared(
+        let mut endpoint = Endpoint::from_shared(
             format!("http://{}:{}", self.server, self.port))?;
-        Ok(Channel::balance_list(vec![endpoint].into_iter()))
-    }
-
-    async fn refresh_endpoint(&self) -> Result<()> {
-        loop {
-            println!("hello world");
-            sleep(Duration::from_secs(10)).await;
+        if let Some(tls_config) = self.client_config.clone() {
+            endpoint = endpoint.tls_config(tls_config)?
         }
+        Ok(Channel::balance_list(vec![endpoint].into_iter()))
     }
 }

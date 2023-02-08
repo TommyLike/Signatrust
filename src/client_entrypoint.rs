@@ -58,8 +58,7 @@ fn main() -> Result<()> {
         None => {None}
     };
     //handler and quit
-    if command.is_some() {
-        let handler = command.unwrap();
+    if let Some(handler) = command {
         handler.validate()?;
         handler.handle()?;
     }

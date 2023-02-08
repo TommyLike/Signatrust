@@ -1,5 +1,5 @@
 use crate::util::error::Result;
-use config::{Config, File};
+use config::{Config, File, FileFormat};
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::Path;
 use std::sync::mpsc::channel;
@@ -14,10 +14,12 @@ pub struct ServerConfig {
 
 impl ServerConfig {
     pub fn new(path: String) -> ServerConfig {
-        let mut config = Config::default();
-        config
-            .merge(File::with_name(path.as_str()))
-            .expect("load configuration file");
+        let builder = Config::builder()
+            .set_default("tls_cert", "").expect("tls cert default to empty")
+            .set_default("tls_key", "").expect("tls key default to empty")
+            .set_default("ca_root", "").expect("ca root default to empty")
+            .add_source(File::new(path.as_str(), FileFormat::Toml));
+        let config = builder.build().expect("load configuration file");
         ServerConfig {
             config: Arc::new(RwLock::new(config)),
             path,

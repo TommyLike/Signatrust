@@ -48,7 +48,7 @@ pub struct SignIdentity {
 
 impl SignIdentity {
     pub(crate) fn new(file_type: FileType, file_path: PathBuf, key_type: KeyType, key_id: String) -> Self {
-        return Self {
+        Self {
             file_type,
             file_path,
             key_type,

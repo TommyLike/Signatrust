@@ -12,6 +12,7 @@ use std::fmt::{Display, format, Formatter, Result as fmtResult, write};
 use crate::util::error;
 use async_channel::{bounded, RecvError};
 use crate::client::load_balancer::{traits::DynamicLoadBalancer, single::SingleLoadBalancer};
+use crate::client::load_balancer::factory::ChannelFactory;
 use crate::client::worker::assembler::Assembler;
 use crate::client::worker::signer::RemoteSigner;
 use crate::client::worker::splitter::Splitter;
@@ -45,8 +46,6 @@ pub struct CommandAdd {
 
 #[derive(Clone)]
 pub struct CommandAddHandler {
-    server_address: String,
-    server_port: String,
     worker_threads: usize,
     working_dir: String,
     file_type: sign_identity::FileType,
@@ -54,7 +53,8 @@ pub struct CommandAddHandler {
     key_id: String,
     path: PathBuf,
     buffer_size: usize,
-    signal: Arc<AtomicBool>
+    signal: Arc<AtomicBool>,
+    config:  Arc<RwLock<Config>>
 }
 
 impl CommandAddHandler {
@@ -100,7 +100,7 @@ impl CommandAddHandler {
         if collections.contains(&extension) {
             return Ok(true)
         }
-        return Ok(false)
+        Ok(false)
     }
 }
 
@@ -114,8 +114,6 @@ impl SignCommand for CommandAddHandler {
             worker_threads = num_cpus::get() as usize;
         }
         Ok(CommandAddHandler{
-            server_address: config.read()?.get_string("server_address")?,
-            server_port: config.read()?.get_string("server_port")?,
             worker_threads,
             buffer_size: config.read()?.get_string("buffer_size")?.parse()?,
             working_dir: config.read()?.get_string("working_dir")?,
@@ -123,7 +121,8 @@ impl SignCommand for CommandAddHandler {
             key_type: command.key_type,
             key_id: command.key_id,
             path: std::path::PathBuf::from(&command.path.clone()),
-            signal
+            signal,
+            config: config.clone(),
         })
     }
 
@@ -147,20 +146,17 @@ impl SignCommand for CommandAddHandler {
         let runtime = runtime::Builder::new_multi_thread()
             .worker_threads(self.worker_threads)
             .enable_io()
+            .enable_time()
             .build().unwrap();
         let (sign_s, sign_r) = bounded::<sign_identity::SignIdentity>(MAX_MESSAGES);
         let (assemble_s, assemble_r) = bounded::<sign_identity::SignIdentity>(MAX_MESSAGES);
         let (collect_s, collect_r) = bounded::<sign_identity::SignIdentity>(MAX_MESSAGES);
-        let balancer = SingleLoadBalancer::new(self.server_address.clone(), self.server_port.clone());
         info!("starting to sign {} files", files.len());
+        let lb_config = self.config.read()?.get_table("server")?;
         runtime.block_on(async {
-            let channel = balancer.get_transport_channel().unwrap();
+            let channel = ChannelFactory::new(
+                &lb_config).await.unwrap().get_channel().unwrap();
             let mut signer = RemoteSigner::new(channel, self.buffer_size);
-            //load balancer update
-            //todo quit correctly
-            tokio::spawn(async move {
-                balancer.refresh_endpoint();
-            });
             //split file
             let split_handlers = files.into_iter().map(|file|{
                 let task_sign_s = sign_s.clone();
@@ -180,7 +176,7 @@ impl SignCommand for CommandAddHandler {
                             signer.handle(identity, task_assemble_s.clone()).await;
                         },
                         Err(e) => {
-                            info!("sign channel may closed");
+                            info!("sign channel closed");
                             return
                         }
                     }
@@ -198,7 +194,7 @@ impl SignCommand for CommandAddHandler {
                             assembler.handle(identity, task_collect_s.clone()).await;
                         },
                         Err(e) => {
-                            info!("assemble channel may closed");
+                            info!("assemble channel closed");
                             return
                         }
                     }
@@ -219,7 +215,7 @@ impl SignCommand for CommandAddHandler {
                             }
                         },
                         Err(e) => {
-                            info!("collect channel may closed");
+                            info!("collect channel closed");
                             return
                         }
                     }

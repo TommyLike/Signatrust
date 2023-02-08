@@ -1,16 +1,16 @@
 use config::Config;
 use std::collections::HashMap;
-use std::fs;
 use std::net::SocketAddr;
 use std::sync::atomic::Ordering;
 use std::sync::{atomic::AtomicBool, Arc, RwLock};
 use tonic::{
     transport::{
         server::{TcpConnectInfo, TlsConnectInfo},
-        Identity, Server, ServerTlsConfig,
+        Identity, Server, ServerTlsConfig, Certificate,
     },
     Request, Response, Status,
 };
+use tokio::fs;
 use tokio::time::{sleep, Duration};
 use crate::infra::cipher::algorithm::{aes::Aes256GcmEncryptor, traits::Encryptor};
 use crate::infra::cipher::engine::{EncryptionEngine, EncryptionEngineWithClusterKey};
@@ -31,6 +31,7 @@ pub struct DataServer {
     server_config: Arc<RwLock<Config>>,
     signal: Arc<AtomicBool>,
     server_identity: Option<Identity>,
+    ca_cert: Option<Certificate>,
     data_key_repository: Arc<datakeyRepository::EncryptedDataKeyRepository>
 }
 
@@ -59,30 +60,34 @@ impl DataServer {
             server_config,
             signal,
             server_identity: None,
+            ca_cert: None,
             data_key_repository: Arc::new(data_repository)
         };
-        server.load()?;
+        server.load().await?;
         Ok(server)
     }
 
-    fn load(&mut self) -> Result<()> {
+    async fn load(&mut self) -> Result<()> {
         if self
             .server_config
             .read()?
-            .get_string("server_tls_cert")?
+            .get_string("tls_cert")?
             .is_empty()
             || self
                 .server_config
                 .read()?
-                .get_string("server_tls_key")?
+                .get_string("tls_key")?
                 .is_empty()
         {
             info!("tls key and cert not configured, data server tls will be disabled");
             return Ok(());
         }
-        let key = fs::read(self.server_config.read()?.get_string("server_tls_key")?)?;
-        let cert = fs::read(self.server_config.read()?.get_string("server_tls_cert")?)?;
-        self.server_identity = Some(Identity::from_pem(cert, key));
+        self.ca_cert = Some(
+            Certificate::from_pem(
+                fs::read(self.server_config.read()?.get_string("ca_root")?).await?));
+        self.server_identity = Some(Identity::from_pem(
+            fs::read(self.server_config.read()?.get_string("tls_cert")?).await?,
+            fs::read(self.server_config.read()?.get_string("tls_key")?).await?));
         Ok(())
     }
 
@@ -148,7 +153,7 @@ impl DataServer {
         if let Some(k) = public_key {
             data_key.public_key = k;
         }
-        //self.data_key_repository.create(&data_key).await?;
+        self.data_key_repository.create(&data_key).await?;
         let data_key = self.data_key_repository.get_by_id(1).await?;
         println!("{}", String::from_utf8_lossy(&data_key.public_key));
         // let content = vec![1, 2, 3, 4];
@@ -170,15 +175,13 @@ impl DataServer {
         info!("data server starts");
         if let Some(identity) = self.server_identity.clone() {
             server
-                .tls_config(ServerTlsConfig::new().identity(identity))?
+                .tls_config(ServerTlsConfig::new().identity(identity).client_ca_root(self.ca_cert.clone().unwrap()))?
                 .add_service(get_grpc_service(self.data_key_repository.clone()))
-                //.serve(addr)
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         } else {
             server
                 .add_service(get_grpc_service(self.data_key_repository.clone()))
-                //.serve(addr)
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         }
