@@ -36,6 +36,7 @@ impl Display for KeyType {
 }
 
 pub struct SignIdentity {
+    //absolute file path
     pub file_path: PathBuf,
     pub key_type: KeyType,
     pub file_type: FileType,
