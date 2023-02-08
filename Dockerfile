@@ -10,5 +10,6 @@ FROM alpine:latest
 ARG BINARY
 WORKDIR /app
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/$BINARY /app
-COPY ./config /app
+COPY ./config /app/config
+COPY ./migrations /app/migrations
 ENTRYPOINT ["/app/$BINARY"]
