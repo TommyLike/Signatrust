@@ -92,8 +92,8 @@ impl FileHandler for RpmFileHandler {
             data[1].as_slice(),
         );
         //save data into temp file
-        let mut output = File::create(std::path::PathBuf::from(temp_rpm.clone())).unwrap();
-        package.write(&mut output).unwrap();
+        let mut output = File::create(std::path::PathBuf::from(temp_rpm.clone()))?;
+        package.write(&mut output)?;
         Ok((temp_rpm.as_path().display().to_string(), format!("{}", path.display().to_string())))
     }
 }

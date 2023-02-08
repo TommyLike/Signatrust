@@ -68,3 +68,6 @@ path = "src/data_server_entrypoint.rs"
 [[bin]]
 name = "control-server"
 path = "src/control_server_entrypoint.rs"
+
+[profile.release]
+strip = "debuginfo"
