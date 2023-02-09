@@ -1,5 +1,6 @@
 # Signatrust
 [![RepoSize](https://img.shields.io/github/repo-size/TommyLike/signatrust)](https://github.com/volcano-sh/volcano)
+[![Clippy check](https://github.com/TommyLike/signatrust/actions/workflows/build.yml/badge.svg)](https://github.com/TommyLike/signatrust/actions/workflows/build.yml)
 
 Signatrust provides a secure, unified and high throughput solution for signing linux packages&binaries in Rust.
 # Background
@@ -39,7 +40,7 @@ We noticed there are several projects aiming to fix some challenges:
    external account system via OIDC protocol. Administrators can generate & import & export & delete keys through the interface.
 
 # Architecture
-
+![System Context](./docs/images/System%20Context.png)
 # Performance
 
 # Quick Start Guide
