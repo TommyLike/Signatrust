@@ -1,4 +1,6 @@
 # Signatrust
+[![RepoSize](https://img.shields.io/github/repo-size/TommyLike/signatrust)](https://github.com/volcano-sh/volcano)
+
 Signatrust provides a secure, unified and high throughput solution for signing linux packages&binaries in Rust.
 # Background
 There are many cases when we need signing packages&binaries for a linux distro, usually PGP is used for rpm package, 
