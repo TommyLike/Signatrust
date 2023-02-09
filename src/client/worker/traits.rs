@@ -8,12 +8,9 @@ use crate::client::file_handler::traits::FileHandler;
 pub trait SignHandler {
     async fn handle(&mut self, item: SignIdentity, sender: Sender<SignIdentity>) -> () {
         if item.error.borrow().clone().is_err() {
-            match sender.send(item).await {
-                Err(err) => {
-                    error!("failed to send sign object into channel: {}", err);
-                }
-                _ => {}
-            };
+            if let Err(err) = sender.send(item).await {
+                error!("failed to send sign object into channel: {}", err);
+            }
         } else {
             let handler = FileHandlerFactory::get_handler(item.file_type.clone());
             let updated = self.process(handler, item).await;

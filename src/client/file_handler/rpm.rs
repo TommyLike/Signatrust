@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::{fs, vec};
 use std::path::PathBuf;
 use super::traits::FileHandler;
 use async_trait::async_trait;
@@ -26,6 +25,7 @@ impl RpmFileHandler {
     }
 }
 
+//todo: figure our why is much slower when async read & write with tokio is enabled.
 #[async_trait]
 impl FileHandler for RpmFileHandler {
     fn get_sign_options(&self) -> HashMap<String, String> {
@@ -47,7 +47,6 @@ impl FileHandler for RpmFileHandler {
         Ok(vec![header_bytes, header_and_content])
 
     }
-
     async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf) -> Result<(String, String)> {
         let temp_rpm = temp_dir.join(Uuid::new_v4().to_string());
         let file = File::open(path)?;

@@ -120,7 +120,7 @@ impl SignCommand for CommandAddHandler {
             file_type: command.file_type,
             key_type: command.key_type,
             key_id: command.key_id,
-            path: std::path::PathBuf::from(&command.path.clone()),
+            path: std::path::PathBuf::from(&command.path),
             signal,
             config: config.clone(),
         })

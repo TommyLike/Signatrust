@@ -65,7 +65,7 @@ impl Identity for DataKey {
             self.id,
             self.email,
             self.user,
-            self.key_type.to_string()
+            self.key_type
         )
     }
 }
