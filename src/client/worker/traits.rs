@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use crate::client::sign_identity::SignIdentity;
+use crate::client::sign_identity::{FileType, SignIdentity};
 use async_channel::{Sender, SendError};
 use crate::client::file_handler::factory::FileHandlerFactory;
 use crate::client::file_handler::traits::FileHandler;

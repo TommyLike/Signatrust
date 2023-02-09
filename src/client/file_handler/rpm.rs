@@ -10,6 +10,8 @@ use crate::util::error;
 use super::sequential_cursor::SeqCursor;
 use uuid::Uuid;
 use sha1;
+use crate::client::cmd::options;
+use crate::util::error::Error;
 
 #[derive(Clone)]
 pub struct RpmFileHandler {
@@ -28,14 +30,20 @@ impl RpmFileHandler {
 //todo: figure our why is much slower when async read & write with tokio is enabled.
 #[async_trait]
 impl FileHandler for RpmFileHandler {
-    fn get_sign_options(&self) -> HashMap<String, String> {
-        HashMap::new()
+
+    fn validate_options(&self, sign_options: HashMap<String, String>) -> Result<()> {
+        if let Some(detached) = sign_options.get(options::DETACHED) {
+            if detached == "true" {
+                return Err(Error::InvalidArgumentError("rpm file only support inside signature".to_string()))
+            }
+        }
+        Ok(())
     }
 
     //rpm has two sections need to be signed
     //1. header
     //2. header and content
-    async fn split_data(&self, path: &PathBuf) -> Result<Vec<Vec<u8>>> {
+    async fn split_data(&self, path: &PathBuf, sign_options: &mut HashMap<String, String>) -> Result<Vec<Vec<u8>>> {
         let file = File::open(path)?;
         let mut package = RPMPackage::parse(&mut BufReader::new(file))?;
         let mut header_bytes = Vec::<u8>::with_capacity(1024);
@@ -47,7 +55,7 @@ impl FileHandler for RpmFileHandler {
         Ok(vec![header_bytes, header_and_content])
 
     }
-    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf) -> Result<(String, String)> {
+    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: HashMap<String, String>) -> Result<(String, String)> {
         let temp_rpm = temp_dir.join(Uuid::new_v4().to_string());
         let file = File::open(path)?;
         let mut package = RPMPackage::parse(&mut BufReader::new(file))?;

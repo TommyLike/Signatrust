@@ -1,5 +1,6 @@
 use super::rpm::RpmFileHandler;
 use super::checksum::CheckSumFileHandler;
+use super::kernel_module::KernelModuleFileHandler;
 use crate::client::sign_identity::FileType;
 use super::traits::FileHandler;
 
@@ -14,6 +15,9 @@ impl FileHandlerFactory {
             },
             FileType::CheckSum => {
                 Box::new(CheckSumFileHandler::new())
+            },
+            FileType::KernelModule => {
+                Box::new(KernelModuleFileHandler::new())
             }
         }
     }

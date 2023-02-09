@@ -59,8 +59,8 @@ fn main() -> Result<()> {
     };
     //handler and quit
     if let Some(handler) = command {
-        handler.validate()?;
-        handler.handle()?;
+        handler.validate().expect("failed to validate command option");
+        handler.handle().expect("failed to perform command");
     }
 
     Ok(())

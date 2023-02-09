@@ -13,6 +13,7 @@ use std::sync::PoisonError;
 use rpm::RPMError;
 use thiserror::Error as ThisError;
 use tonic::transport::Error as TonicError;
+use bincode::error::EncodeError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -63,6 +64,10 @@ pub enum Error {
     WalkDirectoryError(String),
     #[error("failed to parse rpm file: {0}")]
     RpmParseError(String),
+    #[error("invalid argument: {0}")]
+    InvalidArgumentError(String),
+    #[error("failed to encode in bincode: {0}")]
+    BincodeError(String),
 }
 
 impl From<SqlxError> for Error {
@@ -167,3 +172,10 @@ impl From<RPMError> for Error {
         Error::RpmParseError(err.to_string())
     }
 }
+
+impl From<EncodeError> for Error {
+    fn from(err: EncodeError) -> Self {
+        Error::BincodeError(err.to_string())
+    }
+}
+

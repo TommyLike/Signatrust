@@ -11,6 +11,8 @@ use std::collections::HashMap;
 use std::fmt::{Display, format, Formatter, Result as fmtResult, write};
 use crate::util::error;
 use async_channel::{bounded, RecvError};
+use tokio::io::split;
+use crate::client::file_handler::factory::FileHandlerFactory;
 use crate::client::load_balancer::{traits::DynamicLoadBalancer, single::SingleLoadBalancer};
 use crate::client::load_balancer::factory::ChannelFactory;
 use crate::client::worker::assembler::Assembler;
@@ -23,24 +25,32 @@ const MAX_MESSAGES: usize = 1000;
 lazy_static! {
     pub static ref FILE_EXTENSION: HashMap<sign_identity::FileType, Vec<&'static str>> = HashMap::from([
         (sign_identity::FileType::RPM, vec!["rpm", "srpm"]),
-        (sign_identity::FileType::CheckSum, vec!["txt", "sha256sum", "rpm"]),
+        (sign_identity::FileType::CheckSum, vec!["txt", "sha256sum"]),
+        (sign_identity::FileType::KernelModule, vec!["ko"]),
     ]);
 }
 
 #[derive(Args)]
 pub struct CommandAdd {
-    #[clap(value_enum)]
+    #[arg(long)]
+    #[arg(value_enum)]
     #[arg(help = "specify the file type for signing, currently support checksum and rpm")]
     file_type: sign_identity::FileType,
-    #[clap(value_enum)]
+    #[arg(long)]
+    #[arg(value_enum)]
     #[arg(help = "specify the key type for signing, currently support pgp and x509")]
     key_type: sign_identity::KeyType,
     #[arg(long)]
-    #[arg(help = "specify the path which will be used for signing file and directory are supported")]
-    path: String,
-    #[arg(long)]
     #[arg(help = "specify the key id for signing")]
     key_id: String,
+    #[arg(long)]
+    #[arg(help = "create detached signature")]
+    detached: bool,
+    #[arg(long)]
+    #[arg(help = "skip signed file")]
+    skip_signed: bool,
+    #[arg(help = "specify the path which will be used for signing file and directory are supported")]
+    path: String,
 }
 
 
@@ -54,10 +64,18 @@ pub struct CommandAddHandler {
     path: PathBuf,
     buffer_size: usize,
     signal: Arc<AtomicBool>,
-    config:  Arc<RwLock<Config>>
+    config:  Arc<RwLock<Config>>,
+    detached: bool,
+    skip_signed: bool
 }
 
 impl CommandAddHandler {
+
+    fn get_sign_options(&self) -> HashMap<String, String> {
+        HashMap::from([
+            ("detached".to_string(), self.detached.to_string()),
+            ("skip_signed".to_string(), self.skip_signed.to_string())])
+    }
     fn collect_file_candidates(&self) -> Result<Vec<sign_identity::SignIdentity>> {
         if self.path.is_dir() {
             let mut container = Vec::new();
@@ -73,8 +91,9 @@ impl CommandAddHandler {
                                     sign_identity::SignIdentity::new(
                                         self.file_type.clone(),
                                         en.path().to_path_buf(),
-                                        self.key_type.clone(), self.key_id.clone())
-                                );
+                                        self.key_type.clone(),
+                                        self.key_id.clone(),
+                                        self.get_sign_options()));
                             }
                         }
                     },
@@ -87,7 +106,7 @@ impl CommandAddHandler {
         } else {
             if self.file_candidates(self.path.extension().unwrap().to_str().unwrap())? {
                 return Ok(vec![sign_identity::SignIdentity::new(
-                    self.file_type.clone(), self.path.clone(), self.key_type.clone(), self.key_id.clone())]);
+                    self.file_type.clone(), self.path.clone(), self.key_type.clone(), self.key_id.clone(), self.get_sign_options())]);
             }
         }
         return Err(error::Error::NoFileCandidateError);
@@ -123,12 +142,13 @@ impl SignCommand for CommandAddHandler {
             path: std::path::PathBuf::from(&command.path),
             signal,
             config: config.clone(),
+            detached: command.detached,
+            skip_signed: command.skip_signed
         })
     }
 
-    fn validate(&self) -> Result<bool> {
-        //considering the valid key type for specific file type
-        Ok(true)
+    fn validate(&self) -> Result<()> {
+        FileHandlerFactory::get_handler(self.file_type.clone()).validate_options(self.get_sign_options())
     }
 
     //Signing process are described below.

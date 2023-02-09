@@ -9,6 +9,7 @@ use std::collections::HashMap;
 pub enum FileType {
     RPM,
     CheckSum,
+    KernelModule
 }
 
 impl Display for FileType {
@@ -16,6 +17,7 @@ impl Display for FileType {
         match self {
             FileType::RPM => write!(f, "rpm"),
             FileType::CheckSum => write!(f, "checksum"),
+            FileType::KernelModule => write!(f, "ko")
         }
     }
 }
@@ -48,7 +50,7 @@ pub struct SignIdentity {
 }
 
 impl SignIdentity {
-    pub(crate) fn new(file_type: FileType, file_path: PathBuf, key_type: KeyType, key_id: String) -> Self {
+    pub(crate) fn new(file_type: FileType, file_path: PathBuf, key_type: KeyType, key_id: String, sign_options: HashMap<String, String>) -> Self {
         Self {
             file_type,
             file_path,
@@ -56,7 +58,7 @@ impl SignIdentity {
             key_id,
             raw_content: Box::new(RefCell::new(vec![])),
             signature: Box::new(RefCell::new(vec![])),
-            sign_options: RefCell::new(HashMap::new()),
+            sign_options: RefCell::new(sign_options),
             error: RefCell::new(Ok(())),
         }
     }

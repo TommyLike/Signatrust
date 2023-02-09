@@ -6,6 +6,8 @@ use tokio::fs;
 use uuid::Uuid;
 use std::io::Write;
 use std::collections::HashMap;
+use crate::util::error::Error;
+use crate::client::cmd::options;
 
 
 const FILE_EXTENSION: &str = "asc";
@@ -26,25 +28,23 @@ impl CheckSumFileHandler {
 #[async_trait]
 impl FileHandler for CheckSumFileHandler {
 
-    fn get_sign_options(&self) -> HashMap<String, String> {
-        HashMap::from([
-            ("detached".to_string(), "true".to_string()),
-        ])
-    }
-    //Read the whole content and await
-    async fn split_data(&self, path: &PathBuf) -> Result<Vec<Vec<u8>>> {
-        let content = fs::read(path).await?;
-        Ok(vec![content])
+    fn validate_options(&self, sign_options: HashMap<String, String>) -> Result<()> {
+        if let Some(detached) = sign_options.get(options::DETACHED) {
+            if detached == "false" {
+                return Err(Error::InvalidArgumentError("checksum file only support detached signature".to_string()))
+            }
+        }
+        Ok(())
     }
 
     /* when assemble checksum signature when only create another .asc file separately */
-    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf) -> Result<(String, String)> {
+    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: HashMap<String, String>) -> Result<(String, String)> {
         let temp_file = temp_dir.join(Uuid::new_v4().to_string());
         //convert bytes into string
         let result = String::from_utf8_lossy(&data[0]);
         fs::write(temp_file.clone(), result.as_bytes()).await?;
         Ok((temp_file.as_path().display().to_string(),
-            format!("{}.{}", path.display(), FILE_EXTENSION)))
+            format!("{}.{}", path.as_path().display(), FILE_EXTENSION)))
     }
 }
 

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::client::{file_handler, sign_identity::SignIdentity};
 use crate::util::error::Result;
 use async_channel::Sender;
@@ -21,10 +22,11 @@ impl Splitter {
 #[async_trait]
 impl SignHandler for Splitter {
     async fn process(&mut self, handler: Box<dyn FileHandler>, item: SignIdentity) -> SignIdentity {
-        match handler.split_data(&item.file_path).await {
+        let mut sign_options = item.sign_options.borrow().clone();
+        match handler.split_data(&item.file_path, &mut sign_options).await {
             Ok(content) => {
                 *item.raw_content.borrow_mut() = content;
-                *item.sign_options.borrow_mut() = handler.get_sign_options();
+                *item.sign_options.borrow_mut() = sign_options;
                 debug!("successfully split file {}", item.file_path.as_path().display());
             }
             Err(err) => {
