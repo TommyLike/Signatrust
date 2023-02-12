@@ -9,6 +9,7 @@ use std::boxed::Box;
 use std::convert::identity;
 use std::ops::Deref;
 use std::sync::Arc;
+use secstr::SecVec;
 
 #[derive(Debug, FromRow)]
 pub(super) struct ClusterKeyDTO {
@@ -28,7 +29,7 @@ impl ClusterKeyDTO {
         Ok(Self {
             id: cluster_key.id,
             data: kms_provider
-                .encode(key::encode_u8_to_hex_string(&cluster_key.data))
+                .encode(key::encode_u8_to_hex_string(&cluster_key.data.unsecure()))
                 .await?
                 .as_bytes()
                 .to_vec(),
@@ -41,11 +42,11 @@ impl ClusterKeyDTO {
     pub async fn decrypt(&self, kms_provider: Arc<Box<dyn KMSProvider>>) -> Result<ClusterKey> {
         Ok(ClusterKey {
             id: self.id,
-            data: key::decode_hex_string_to_u8(
+            data: SecVec::new(key::decode_hex_string_to_u8(
                 kms_provider
                     .decode(String::from_utf8(self.data.clone())?)
                     .await?,
-            ),
+            )),
             algorithm: self.algorithm.clone(),
             identity: self.identity.clone(),
             create_at: self.create_at,

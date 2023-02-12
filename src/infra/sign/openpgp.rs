@@ -86,7 +86,7 @@ impl OpenPGPPlugin {
 
 impl SignPlugins for OpenPGPPlugin {
     fn new(db: DataKey) -> Result<Self> {
-        let value = from_utf8(&db.private_key).map_err(|e| Error::KeyParseError(e.to_string()))?;
+        let value = from_utf8(&db.private_key.unsecure()).map_err(|e| Error::KeyParseError(e.to_string()))?;
         let (secret_key, _) =
             SignedSecretKey::from_string(value).map_err(|e| Error::KeyParseError(e.to_string()))?;
         Ok(Self {

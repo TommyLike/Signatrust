@@ -14,6 +14,7 @@ use std::convert::identity;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
+use secstr::*;
 
 #[derive(Debug, FromRow)]
 pub(super) struct DataKeyDTO {
@@ -46,17 +47,17 @@ impl DataKeyDTO {
             key_type: data_key.key_type.to_string(),
             private_key: key::encode_u8_to_hex_string(
                 &encryption_engine
-                    .encode(data_key.private_key.clone())
+                    .encode(data_key.private_key.unsecure().to_owned())
                     .await?,
             ),
             public_key: key::encode_u8_to_hex_string(
                 &encryption_engine
-                    .encode(data_key.public_key.clone())
+                    .encode(data_key.public_key.unsecure().to_owned())
                     .await?,
             ),
             certificate: key::encode_u8_to_hex_string(
                 &encryption_engine
-                    .encode(data_key.certificate.clone())
+                    .encode(data_key.certificate.unsecure().to_owned())
                     .await?,
             ),
             create_at: data_key.create_at,
@@ -76,15 +77,15 @@ impl DataKeyDTO {
             email: self.email.clone(),
             attributes: serde_json::from_str(self.attributes.as_str())?,
             key_type: KeyType::from_str(&self.key_type)?,
-            private_key: encryption_engine
+            private_key: SecVec::new(encryption_engine
                 .decode(key::decode_hex_string_to_u8(self.private_key.clone()))
-                .await?,
-            public_key: encryption_engine
+                .await?),
+            public_key: SecVec::new(encryption_engine
                 .decode(key::decode_hex_string_to_u8(self.public_key.clone()))
-                .await?,
-            certificate: encryption_engine
+                .await?),
+            certificate: SecVec::new(encryption_engine
                 .decode(key::decode_hex_string_to_u8(self.certificate.clone()))
-                .await?,
+                .await?),
             create_at: self.create_at,
             expire_at: self.expire_at,
         })

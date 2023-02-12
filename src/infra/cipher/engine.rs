@@ -113,7 +113,7 @@ impl EncryptionEngine for EncryptionEngineWithClusterKey {
         //always use latest cluster key to encode data
         let mut secret = self
             .encryptor
-            .encrypt(self.latest_cluster_key.data.clone(), content)?;
+            .encrypt(self.latest_cluster_key.data.unsecure().to_owned(), content)?;
         Ok(self.append_cluster_key_hex(&mut secret))
     }
 
@@ -122,7 +122,7 @@ impl EncryptionEngine for EncryptionEngineWithClusterKey {
         //2. use cluster key to decrypt data
         let cluster_key = self.get_used_cluster_key(&content[0..KEY_SIZE]).await?;
         self.encryptor.decrypt(
-            self.latest_cluster_key.data.clone(),
+            self.latest_cluster_key.data.unsecure().to_owned(),
             content[KEY_SIZE..].to_vec(),
         )
     }

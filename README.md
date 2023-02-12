@@ -23,8 +23,9 @@ We noticed there are several projects aiming to fix some challenges:
 1. **E2E security design**: First of all, all the sensitive data (key and certificates) will be encrypted transparently with 
    external KMS provider such as CloudHSM before saving into database, second, instead of transferring private key to client
    and perform a local sign operation, all the content will be delivered to sign server and signature calculated in the memory
-   directly, last, mutual-tls is required for communication between client and server for now, and can be upgraded to integrated
-   with SPIFF&SPIRE system.
+   directly, also all the memory keys will be zeroed out when dropping and protected from leaking to swap and core dump, at last,
+   mutual-tls is required for communication between client and server for now, and can be upgraded to integrated with SPIFF&SPIRE
+   ecosystem.
 2. **High throughput**: The control server and data server are split and the data server can be easily replicated, additional
    improvements including gRPC stream, client round-robin, memory cache and async tasks are used to increase single instance 
    performance.

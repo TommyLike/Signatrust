@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::Mutex;
+use secstr::*;
 
 static SIGN_HEADER: &str = "x-auth-token";
 static AUTH_HEADER: &str = "x-subject-token";
@@ -27,7 +28,7 @@ struct DecodeData {
 pub struct HuaweiCloudKMS {
     kms_id: String,
     username: String,
-    password: String,
+    password: SecUtf8,
     domain: String,
     project_name: String,
     project_id: String,
@@ -47,10 +48,10 @@ impl HuaweiCloudKMS {
                 .get("username")
                 .unwrap_or(&Value::default())
                 .to_string(),
-            password: config
+            password: SecUtf8::from(config
                 .get("password")
                 .unwrap_or(&Value::default())
-                .to_string(),
+                .to_string()),
             domain: config
                 .get("domain")
                 .unwrap_or(&Value::default())
@@ -83,7 +84,7 @@ impl HuaweiCloudKMS {
                     "password": {
                         "user": {
                             "name": self.username,
-                            "password": self.password,
+                            "password": self.password.unsecure(),
                             "domain": {
                                 "name": self.domain
                             }

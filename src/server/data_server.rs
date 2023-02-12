@@ -26,6 +26,7 @@ use crate::model::datakey::repository::Repository as DatakeyRepository;
 use crate::service::grpc_service::get_grpc_service;
 use crate::util::error::Error::KeyParseError;
 use crate::util::error::Result;
+use secstr::*;
 
 pub struct DataServer {
     server_config: Arc<RwLock<Config>>,
@@ -141,21 +142,21 @@ impl DataServer {
             email: "12121".to_string(),
             attributes: HashMap::new(),
             key_type: KeyType::OpenPGP,
-            private_key: vec![],
-            public_key: vec![],
-            certificate: vec![],
+            private_key: SecVec::new(vec![]),
+            public_key:  SecVec::new(vec![]),
+            certificate:  SecVec::new(vec![]),
             create_at: Default::default(),
             expire_at: Default::default(),
         };
         if let Some(k) = private_key {
-            data_key.private_key = k;
+            data_key.private_key = SecVec::new(k);
         }
         if let Some(k) = public_key {
-            data_key.public_key = k;
+            data_key.public_key = SecVec::new(k);
         }
         self.data_key_repository.create(&data_key).await?;
         let data_key = self.data_key_repository.get_by_id(1).await?;
-        println!("{}", String::from_utf8_lossy(&data_key.public_key));
+        println!("{}", String::from_utf8_lossy(&data_key.public_key.unsecure()));
         // let content = vec![1, 2, 3, 4];
         // let result = signer.sign(content);
 

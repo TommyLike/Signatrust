@@ -3,10 +3,11 @@ use crate::util::key;
 use chrono::{DateTime, Duration, Utc};
 use std::fmt::{Display, Formatter};
 use std::vec::Vec;
+use secstr::*;
 #[derive(Debug)]
 pub struct ClusterKey {
     pub id: i32,
-    pub data: Vec<u8>,
+    pub data: SecVec<u8>,
     pub algorithm: String,
     pub identity: String,
     pub create_at: DateTime<Utc>,
@@ -17,7 +18,7 @@ impl Default for ClusterKey {
     fn default() -> Self {
         ClusterKey {
             id: 0,
-            data: vec![0, 0, 0, 0],
+            data: SecVec::new(vec![0, 0, 0, 0]),
             algorithm: "".to_string(),
             identity: "".to_string(),
             create_at: Default::default(),
@@ -42,7 +43,7 @@ impl ClusterKey {
         let identity = format!("{}-{}", algorithm, now.format("%d-%m-%Y"));
         Ok(ClusterKey {
             id: 0,
-            data,
+            data: SecVec::new(data),
             algorithm,
             identity,
             create_at: now,
