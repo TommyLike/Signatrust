@@ -20,6 +20,7 @@ repository = "https://github.com/tommylike/signatrust"
 clap = { version = "4.0.22", features = ["derive", "env"] }
 config = "0.13.3"
 lazy_static = "1.4.0"
+actix-web = { version = "4.3.0", features = ["openssl"]}
 tonic = {version = "0.8.2", features = ["tls", "tls-roots", "transport", "channel"]}
 prost = "0.11.0"
 signal-hook = "0.3.14"
@@ -55,6 +56,7 @@ dns-lookup = {version="1.0.8"}
 sha1 = "0.10.5"
 bincode = "2.0.0-rc.2"
 secstr = "0.5.1"
+openssl = "0.10.45"
 
 [build-dependencies]
 tonic-build = "0.8.4"

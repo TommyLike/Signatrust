@@ -5,6 +5,9 @@ ca_root = "/Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/serv
 [data-server]
 server_ip = "0.0.0.0"
 server_port = "8080"
+[control-server]
+server_ip = "0.0.0.0"
+server_port = "8088"
 [kms-provider]
 type = "huaweicloud"
 kms_id = "65ccb4d8-cc45-4139-b380-2fcff184ac4f"

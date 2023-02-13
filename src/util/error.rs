@@ -14,6 +14,7 @@ use rpm::RPMError;
 use thiserror::Error as ThisError;
 use tonic::transport::Error as TonicError;
 use bincode::error::EncodeError;
+use actix_web::{ResponseError, HttpResponse};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -68,6 +69,17 @@ pub enum Error {
     InvalidArgumentError(String),
     #[error("failed to encode in bincode: {0}")]
     BincodeError(String),
+}
+
+impl ResponseError for Error {
+    fn error_response(&self) -> HttpResponse {
+        match self {
+            _ => {
+                error!("internal error {}", self.to_string());
+                HttpResponse::InternalServerError().json(self.to_string())
+            }
+        }
+    }
 }
 
 impl From<SqlxError> for Error {

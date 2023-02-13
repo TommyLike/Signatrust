@@ -1,17 +1,20 @@
-use config::Config;
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::sync::{Arc, atomic::AtomicBool, RwLock};
 use std::sync::atomic::Ordering;
-use std::sync::{atomic::AtomicBool, Arc, RwLock};
-use tonic::{
-    transport::{
-        server::{TcpConnectInfo, TlsConnectInfo},
-        Identity, Server, ServerTlsConfig, Certificate,
-    },
-    Request, Response, Status,
-};
+
+use config::Config;
+use secstr::*;
 use tokio::fs;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
+use tonic::{
+    Request,
+    Response, Status, transport::{
+        Certificate,
+        Identity, server::{TcpConnectInfo, TlsConnectInfo}, Server, ServerTlsConfig,
+    },
+};
+
 use crate::infra::cipher::algorithm::{aes::Aes256GcmEncryptor, traits::Encryptor};
 use crate::infra::cipher::engine::{EncryptionEngine, EncryptionEngineWithClusterKey};
 use crate::infra::database::model::clusterkey::repository;
@@ -23,10 +26,9 @@ use crate::model::clusterkey::entity::ClusterKey;
 use crate::model::clusterkey::repository::Repository;
 use crate::model::datakey::entity::{DataKey, KeyType};
 use crate::model::datakey::repository::Repository as DatakeyRepository;
-use crate::service::grpc_service::get_grpc_service;
+use crate::service::data_service::grpc_service::get_grpc_service;
 use crate::util::error::Error::KeyParseError;
 use crate::util::error::Result;
-use secstr::*;
 
 pub struct DataServer {
     server_config: Arc<RwLock<Config>>,
