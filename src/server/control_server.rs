@@ -87,16 +87,9 @@ impl ControlServer {
                 // enable logger
                 .app_data(data_key_repository.clone())
                 .wrap(middleware::Logger::default())
-                .service(
-                    web::scope("/api/v1")
-                        .service(
-                        web::scope("/users")
-                            .service(
-                                web::resource("/{id}").route(web::get().to(user_service::get_user)))
-                    ).service(
-                        web::scope("/datakeys")
-                            .service(web::resource("/{id}").route(web::get().to(datakey_service::get_datakey))))
-                )
+                .service(web::scope("/api/v1")
+                    .service(user_service::get_scope())
+                    .service(datakey_service::get_scope()))
         });
         if self.server_config
             .read()?

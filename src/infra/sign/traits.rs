@@ -15,7 +15,7 @@ pub trait SignPlugins: Send + Sync {
         Self: Sized;
     fn generate_keys(
         value: HashMap<String, String>,
-    ) -> Result<(Option<Vec<u8>>, Option<Vec<u8>>, Option<Vec<u8>>)>
+    ) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)>
     where
         Self: Sized;
     fn sign(&self, content: Vec<u8>, options: HashMap<String, String>) -> Result<Vec<u8>>;

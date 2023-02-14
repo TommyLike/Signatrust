@@ -14,7 +14,10 @@ use rpm::RPMError;
 use thiserror::Error as ThisError;
 use tonic::transport::Error as TonicError;
 use bincode::error::EncodeError;
+use chrono::{OutOfRangeError, ParseError};
 use actix_web::{ResponseError, HttpResponse};
+use validator::ValidationErrors;
+use serde::{Deserialize, Serialize};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -49,6 +52,8 @@ pub enum Error {
     PGPInvokeError(String),
     #[error("invalid parameter error {0}")]
     ParameterError(String),
+    #[error("record not found error")]
+    NotFoundError,
 
     //client error
     #[error("file type not supported {0}")]
@@ -71,12 +76,31 @@ pub enum Error {
     BincodeError(String),
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct ErrorMessage {
+    detail: String
+}
+
 impl ResponseError for Error {
     fn error_response(&self) -> HttpResponse {
         match self {
+            Error::ParameterError(_) | Error::UnsupportedTypeError(_) => {
+                warn!("parameter error: {}", self.to_string());
+                HttpResponse::BadRequest().json(ErrorMessage{
+                    detail: self.to_string()
+                })
+            }
+            Error::NotFoundError => {
+                warn!("record not found error: {}", self.to_string());
+                HttpResponse::NotFound().json(ErrorMessage{
+                    detail: self.to_string()
+                })
+            }
             _ => {
-                error!("internal error {}", self.to_string());
-                HttpResponse::InternalServerError().json(self.to_string())
+                warn!("internal error: {}", self.to_string());
+                HttpResponse::InternalServerError().json(ErrorMessage{
+                    detail: self.to_string(),
+                })
             }
         }
     }
@@ -87,8 +111,16 @@ impl From<SqlxError> for Error {
         match sqlx_error.as_database_error() {
             Some(db_error) => Error::DatabaseError(db_error.to_string()),
             None => {
-                error!("{:?}", sqlx_error);
-                Error::DatabaseError(format!("Unrecognized database error! {:?}", sqlx_error))
+                match sqlx_error {
+                    sqlx::Error::RowNotFound => {
+                        Error::NotFoundError
+                    },
+                    _ => {
+                        error!("{:?}", sqlx_error);
+                        Error::DatabaseError(format!("Unrecognized database error! {:?}", sqlx_error))
+                    }
+                }
+
             }
         }
     }
@@ -188,6 +220,24 @@ impl From<RPMError> for Error {
 impl From<EncodeError> for Error {
     fn from(err: EncodeError) -> Self {
         Error::BincodeError(err.to_string())
+    }
+}
+
+impl From<OutOfRangeError> for Error {
+    fn from(err: OutOfRangeError) -> Self {
+        Error::ConvertError(err.to_string())
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(err: ParseError) -> Self {
+        Error::ConvertError(err.to_string())
+    }
+}
+
+impl From<ValidationErrors> for Error {
+    fn from(err: ValidationErrors) -> Self {
+        Error::ParameterError(format!("{:?}", err.errors()))
     }
 }
 

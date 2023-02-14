@@ -15,11 +15,11 @@ impl Signers {
         }
     }
 
-    //generating new key
+    //generating new key, including private & public keys and the certificate, empty if not required.
     pub fn generate_keys(
         key_type: KeyType,
         value: HashMap<String, String>,
-    ) -> Result<(Option<Vec<u8>>, Option<Vec<u8>>, Option<Vec<u8>>)> {
+    ) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)> {
         match key_type {
             KeyType::OpenPGP => OpenPGPPlugin::generate_keys(value),
         }

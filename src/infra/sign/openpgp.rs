@@ -2,7 +2,7 @@ use super::traits::SignPlugins;
 use crate::model::datakey::entity::DataKey;
 use crate::model::datakey::traits::Identity;
 use crate::util::error::{Error, Result};
-use chrono::Utc;
+use chrono::{DateTime, Utc, Duration};
 use pgp::composed::signed_key::SignedSecretKey;
 use pgp::composed::{key::SecretKeyParamsBuilder, KeyDetails, KeyType, SecretKey, SecretSubkey};
 use pgp::crypto::{hash::HashAlgorithm, sym::SymmetricKeyAlgorithm};
@@ -20,6 +20,7 @@ use std::fs::File;
 use std::io::{Cursor, Read};
 use std::str::from_utf8;
 use std::str::FromStr;
+use actix_web::cookie::time::Date;
 use validator::{Validate, ValidationError};
 use pgp::composed::StandaloneSignature;
 
@@ -27,14 +28,18 @@ const DETACHED_SIGNATURE: &str = "detached";
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct KeyGenerationParameter {
-    #[validate(length(min = 4, max = 20))]
+    #[validate(length(min = 4, max = 20, message="invalid openpgp attribute 'name'"))]
     name: String,
-    #[validate(email)]
+    #[validate(email(message="openpgp attribute 'email'"))]
     email: String,
-    #[validate(custom = "validate_key_type")]
+    #[validate(custom( function = "validate_key_type", message="invalid openpgp attribute 'key_type'"))]
     key_type: String,
-    #[validate(custom = "validate_key_size")]
+    #[validate(custom(function = "validate_key_size", message="invalid openpgp attribute 'key_length'"))]
     key_length: String,
+    #[validate(custom(function = "validate_utc_time", message="invalid openpgp attribute 'created_at'"))]
+    create_at: String,
+    #[validate(custom(function= "validate_utc_time", message="invalid openpgp attribute 'expire_at'"))]
+    expire_at: String,
 }
 
 impl KeyGenerationParameter {
@@ -64,6 +69,21 @@ fn validate_key_type(key_type: &str) -> std::result::Result<(), ValidationError>
 fn validate_key_size(key_size: &str) -> std::result::Result<(), ValidationError> {
     if !vec!["1024", "2048", "3072", "4096"].contains(&key_size) {
         return Err(ValidationError::new("invalid key size"));
+    }
+    Ok(())
+}
+
+fn validate_utc_time(expire: &str) -> std::result::Result<(), ValidationError> {
+    let now = Utc::now();
+    match expire.parse::<DateTime<Utc>>() {
+        Ok(expire) => {
+            if expire <= now {
+                return Err(ValidationError::new("expire time less than current time"))
+            }
+        },
+        Err(e) => {
+            return Err(ValidationError::new("failed to parse time string to utc"));
+        }
     }
     Ok(())
 }
@@ -105,9 +125,12 @@ impl SignPlugins for OpenPGPPlugin {
 
     fn generate_keys(
         value: HashMap<String, String>,
-    ) -> Result<(Option<Vec<u8>>, Option<Vec<u8>>, Option<Vec<u8>>)> {
+    ) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)> {
         let parameter = OpenPGPPlugin::attributes_validate(value)?;
         let mut key_params = SecretKeyParamsBuilder::default();
+        let create_at = parameter.create_at.parse()?;
+        let expire :DateTime<Utc> = parameter.expire_at.parse()?;
+        let duration: core::time::Duration = (expire - Utc::now()).to_std()?;
         key_params
             .key_type(parameter.get_key()?)
             .can_create_certificates(false)
@@ -115,7 +138,9 @@ impl SignPlugins for OpenPGPPlugin {
             .primary_user_id(parameter.get_user_id())
             .preferred_symmetric_algorithms(smallvec![SymmetricKeyAlgorithm::AES256,])
             .preferred_hash_algorithms(smallvec![HashAlgorithm::SHA2_256,])
-            .preferred_compression_algorithms(smallvec![CompressionAlgorithm::ZLIB,]);
+            .preferred_compression_algorithms(smallvec![CompressionAlgorithm::ZLIB,])
+            .created_at(create_at)
+            .expiration(Some(duration));
         let secret_key_params = key_params.build()?;
         let secret_key = secret_key_params.generate()?;
         let passwd_fn = || String::new();
@@ -123,9 +148,9 @@ impl SignPlugins for OpenPGPPlugin {
         let public_key = signed_secret_key.public_key();
         let signed_public_key = public_key.sign(&signed_secret_key, passwd_fn)?;
         Ok((
-            Some(signed_secret_key.to_armored_bytes(None)?),
-            Some(signed_public_key.to_armored_bytes(None)?),
-            None,
+            signed_secret_key.to_armored_bytes(None)?,
+            signed_public_key.to_armored_bytes(None)?,
+            vec![],
         ))
     }
 

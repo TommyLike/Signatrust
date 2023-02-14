@@ -18,7 +18,7 @@ We noticed there are several projects aiming to fix some challenges:
 3. other tools.
 
 # Features
-**Signatrust**, stands for `Signature + Trust` is a rust project that can provide a unified solution for all the challenges:
+**Signatrust**, stands for `Signature + Trust + Rust` is a rust project that can provide a unified solution for all the challenges:
  
 1. **E2E security design**: First of all, all the sensitive data (key and certificates) will be encrypted transparently with 
    external KMS provider such as CloudHSM before saving into database, second, instead of transferring private key to client
