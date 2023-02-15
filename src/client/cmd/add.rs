@@ -150,7 +150,7 @@ impl SignCommand for CommandAddHandler {
     }
 
     fn validate(&self) -> Result<()> {
-        FileHandlerFactory::get_handler(self.file_type.clone()).validate_options(self.get_sign_options())
+        FileHandlerFactory::get_handler(self.file_type.clone()).validate_options(&self.get_sign_options())
     }
 
     //Signing process are described below.
@@ -197,7 +197,7 @@ impl SignCommand for CommandAddHandler {
                         Ok(identity) => {
                             signer.handle(identity, task_assemble_s.clone()).await;
                         },
-                        Err(e) => {
+                        Err(_) => {
                             info!("sign channel closed");
                             return
                         }
@@ -215,7 +215,7 @@ impl SignCommand for CommandAddHandler {
                             let mut assembler = Assembler::new( working_dir.clone());
                             assembler.handle(identity, task_collect_s.clone()).await;
                         },
-                        Err(e) => {
+                        Err(_) => {
                             info!("assemble channel closed");
                             return
                         }
@@ -236,7 +236,7 @@ impl SignCommand for CommandAddHandler {
                                 info!("successfully signed file {}", identity.file_path.as_path().display())
                             }
                         },
-                        Err(e) => {
+                        Err(_) => {
                             info!("collect channel closed");
                             return
                         }

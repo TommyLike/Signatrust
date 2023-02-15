@@ -32,7 +32,7 @@ impl RpmFileHandler {
 #[async_trait]
 impl FileHandler for RpmFileHandler {
 
-    fn validate_options(&self, sign_options: HashMap<String, String>) -> Result<()> {
+    fn validate_options(&self, sign_options: &HashMap<String, String>) -> Result<()> {
         if let Some(detached) = sign_options.get(options::DETACHED) {
             if detached == "true" {
                 return Err(Error::InvalidArgumentError("rpm file only support inside signature".to_string()))
@@ -61,7 +61,7 @@ impl FileHandler for RpmFileHandler {
         Ok(vec![header_bytes, header_and_content])
 
     }
-    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: HashMap<String, String>) -> Result<(String, String)> {
+    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: &HashMap<String, String>) -> Result<(String, String)> {
         let temp_rpm = temp_dir.join(Uuid::new_v4().to_string());
         let file = File::open(path)?;
         let mut package = RPMPackage::parse(&mut BufReader::new(file))?;

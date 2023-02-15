@@ -34,7 +34,7 @@ impl SignHandler for Assembler {
     async fn process(&mut self, handler: Box<dyn FileHandler>, item: SignIdentity) -> SignIdentity {
         let signatures: Vec<Vec<u8>> = (*item.signature).borrow().clone();
         let sign_options = item.sign_options.borrow().clone();
-        match handler.assemble_data(&item.file_path,  signatures, &self.temp_dir, sign_options).await {
+        match handler.assemble_data(&item.file_path,  signatures, &self.temp_dir, &sign_options).await {
             Ok(content) => {
                 debug!("successfully assemble file {}", item.file_path.as_path().display());
                 let temp_file = Path::new(&content.0);

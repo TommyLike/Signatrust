@@ -59,7 +59,7 @@ impl ControlServer {
             get_db_pool()?,
             Arc::new(Box::new(engine)),
         );
-        let mut server = ControlServer {
+        let server = ControlServer {
             server_config,
             data_key_repository: web::Data::new(data_repository),
         };

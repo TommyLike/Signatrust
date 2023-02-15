@@ -37,7 +37,7 @@ async fn show_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: we
 }
 
 async fn delete_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
-    let key = repository.into_inner().delete_by_id(id.parse::<i32>()?).await?;
+    repository.into_inner().delete_by_id(id.parse::<i32>()?).await?;
     Ok(HttpResponse::Ok())
 }
 

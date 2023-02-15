@@ -28,7 +28,7 @@ impl CheckSumFileHandler {
 #[async_trait]
 impl FileHandler for CheckSumFileHandler {
 
-    fn validate_options(&self, sign_options: HashMap<String, String>) -> Result<()> {
+    fn validate_options(&self, sign_options: &HashMap<String, String>) -> Result<()> {
         if let Some(detached) = sign_options.get(options::DETACHED) {
             if detached == "false" {
                 return Err(Error::InvalidArgumentError("checksum file only support detached signature".to_string()))
@@ -38,7 +38,7 @@ impl FileHandler for CheckSumFileHandler {
     }
 
     /* when assemble checksum signature when only create another .asc file separately */
-    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: HashMap<String, String>) -> Result<(String, String)> {
+    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: &HashMap<String, String>) -> Result<(String, String)> {
         let temp_file = temp_dir.join(Uuid::new_v4().to_string());
         //convert bytes into string
         let result = String::from_utf8_lossy(&data[0]);
