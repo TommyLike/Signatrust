@@ -12,6 +12,7 @@ use std::fmt::{Display, format, Formatter, Result as fmtResult, write};
 use crate::util::error;
 use async_channel::{bounded, RecvError};
 use tokio::io::split;
+use crate::client::cmd::options;
 use crate::client::file_handler::factory::FileHandlerFactory;
 use crate::client::load_balancer::{traits::DynamicLoadBalancer, single::SingleLoadBalancer};
 use crate::client::load_balancer::factory::ChannelFactory;
@@ -73,8 +74,9 @@ impl CommandAddHandler {
 
     fn get_sign_options(&self) -> HashMap<String, String> {
         HashMap::from([
-            ("detached".to_string(), self.detached.to_string()),
-            ("skip_signed".to_string(), self.skip_signed.to_string())])
+            (options::DETACHED.to_string(), self.detached.to_string()),
+            (options::SKIP_SIGNED.to_string(), self.skip_signed.to_string()),
+            (options::KEY_TYPE.to_string(), self.key_type.to_string())])
     }
     fn collect_file_candidates(&self) -> Result<Vec<sign_identity::SignIdentity>> {
         if self.path.is_dir() {

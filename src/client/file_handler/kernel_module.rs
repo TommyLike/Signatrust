@@ -8,6 +8,9 @@ use std::io::Write;
 use bincode::{config, Decode, Encode};
 use std::collections::HashMap;
 use std::os::raw::{c_uchar, c_uint};
+use crate::client::cmd::options;
+use crate::client::sign_identity::KeyType;
+use crate::util::error::Error;
 
 
 const FILE_EXTENSION: &str = "p7s";
@@ -75,6 +78,15 @@ impl KernelModuleFileHandler {
 
 #[async_trait]
 impl FileHandler for KernelModuleFileHandler {
+
+    fn validate_options(&self, sign_options: HashMap<String, String>) -> Result<()> {
+        if let Some(key_type) = sign_options.get(options::KEY_TYPE) {
+            if key_type != KeyType::X509.to_string().as_str() {
+                return Err(Error::InvalidArgumentError("kernel module file only support x509 signature".to_string()))
+            }
+        }
+        Ok(())
+    }
 
     /* when assemble checksum signature when only create another .asc file separately */
     async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: HashMap<String, String>) -> Result<(String, String)> {

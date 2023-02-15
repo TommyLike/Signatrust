@@ -40,7 +40,7 @@ We noticed there are several projects aiming to fix some challenges:
 4. **User-friendly key management**: Signatrust provides a standalone UI for key management and can be easily integrated with
    external account system via OIDC protocol. Administrators can generate & import & export & delete keys through the interface.
 
-# Architecture
+# System Context
 ![System Context](./docs/images/System%20Context.png)
 # Performance
 

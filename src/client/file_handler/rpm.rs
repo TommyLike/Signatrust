@@ -11,6 +11,7 @@ use super::sequential_cursor::SeqCursor;
 use uuid::Uuid;
 use sha1;
 use crate::client::cmd::options;
+use crate::client::sign_identity::KeyType;
 use crate::util::error::Error;
 
 #[derive(Clone)]
@@ -35,6 +36,11 @@ impl FileHandler for RpmFileHandler {
         if let Some(detached) = sign_options.get(options::DETACHED) {
             if detached == "true" {
                 return Err(Error::InvalidArgumentError("rpm file only support inside signature".to_string()))
+            }
+        }
+        if let Some(key_type) = sign_options.get(options::KEY_TYPE) {
+            if key_type != KeyType::PGP.to_string().as_str() {
+                return Err(Error::InvalidArgumentError("rpm file only support pgp signature".to_string()))
             }
         }
         Ok(())
