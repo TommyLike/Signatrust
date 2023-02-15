@@ -12,7 +12,7 @@ pub struct ChannelFactory {
 
 impl ChannelFactory {
     pub async fn new(config: &HashMap<String, Value>) -> Result<Self> {
-        let mut clientConfig :Option<ClientTlsConfig> = None;
+        let mut client_config :Option<ClientTlsConfig> = None;
         let tls_cert = config.get("tls_cert").unwrap_or(&Value::default()).to_string();
         let tls_key = config.get("tls_key").unwrap_or(&Value::default()).to_string();
         let server_port = config.get("server_port").unwrap_or(&Value::default()).to_string();
@@ -24,7 +24,7 @@ impl ChannelFactory {
             let identity = Identity::from_pem(
                 tokio::fs::read(tls_cert).await?,
                 tokio::fs::read(tls_key).await?);
-            clientConfig = Some(ClientTlsConfig::new()
+            client_config = Some(ClientTlsConfig::new()
                 .identity(identity).domain_name(config.get("domain_name").unwrap_or(&Value::default()).to_string()));
         }
         let lb_type = config.get("type").unwrap_or(&Value::default()).to_string();
@@ -32,13 +32,13 @@ impl ChannelFactory {
             return Ok(Self {
                 lb: Box::new(SingleLoadBalancer::new(
                     config.get("server_address").unwrap_or(&Value::default()).to_string(),
-                    server_port, clientConfig)?)
+                    server_port, client_config)?)
             })
         } else if lb_type == "dns" {
             return Ok(Self {
                 lb: Box::new(DNSLoadBalancer::new(
                     config.get("server_name").unwrap_or(&Value::default()).to_string(),
-                    server_port, clientConfig)?)
+                    server_port, client_config)?)
             })
         }
         Err(Error::ConfigError(format!("invalid load balancer type configuration {}", lb_type)))

@@ -3,7 +3,7 @@ use crate::util::error::Result;
 use std::collections::HashMap;
 
 pub trait SignPlugins: Send + Sync {
-    fn new(db: DataKey) -> Result<Self>
+    fn new(db: &DataKey) -> Result<Self>
     where
         Self: Sized;
     fn parse_attributes(
@@ -14,7 +14,7 @@ pub trait SignPlugins: Send + Sync {
     where
         Self: Sized;
     fn generate_keys(
-        value: HashMap<String, String>,
+        value: &HashMap<String, String>,
     ) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)>
     where
         Self: Sized;

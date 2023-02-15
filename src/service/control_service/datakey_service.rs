@@ -15,7 +15,7 @@ async fn create_data_key(repository: web::Data<EncryptedDataKeyRepository>, data
     datakey.validate()?;
     let mut key = DataKey::try_from(datakey.0)?;
     let (private_key, public_key, certificate) =
-        Signers::generate_keys(key.key_type.clone(), key.attributes.clone())?;
+        Signers::generate_keys(&key.key_type, &key.attributes)?;
     key.private_key = SecVec::new(private_key);
     key.public_key = SecVec::new(public_key);
     key.certificate = SecVec::new(certificate);
@@ -49,7 +49,7 @@ async fn export_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: 
     Ok(HttpResponse::Ok().json(exported))
 }
 
-async fn import_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+async fn import_data_key(repository: web::Data<EncryptedDataKeyRepository>) -> Result<impl Responder, Error> {
     Ok(HttpResponse::Ok())
 }
 
@@ -63,6 +63,6 @@ pub fn get_scope() -> Scope {
         .service( web::resource("/{id}")
             .route(web::get().to(show_data_key))
             .route(web::delete().to(delete_data_key)))
-        .service( web::resource("/{id}/import").route(web::post().to(import_data_key)))
+        .service( web::resource("/import").route(web::post().to(import_data_key)))
         .service( web::resource("/{id}/export").route(web::post().to(export_data_key)))
 }

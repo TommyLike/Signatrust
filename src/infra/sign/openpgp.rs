@@ -94,7 +94,7 @@ pub struct OpenPGPPlugin {
 }
 
 impl OpenPGPPlugin {
-    pub fn attributes_validate(attr: HashMap<String, String>) -> Result<KeyGenerationParameter> {
+    pub fn attributes_validate(attr: &HashMap<String, String>) -> Result<KeyGenerationParameter> {
         let parameter: KeyGenerationParameter =
             serde_json::from_str(serde_json::to_string(&attr)?.as_str())?;
         match parameter.validate() {
@@ -105,7 +105,7 @@ impl OpenPGPPlugin {
 }
 
 impl SignPlugins for OpenPGPPlugin {
-    fn new(db: DataKey) -> Result<Self> {
+    fn new(db: &DataKey) -> Result<Self> {
         let value = from_utf8(&db.private_key.unsecure()).map_err(|e| Error::KeyParseError(e.to_string()))?;
         let (secret_key, _) =
             SignedSecretKey::from_string(value).map_err(|e| Error::KeyParseError(e.to_string()))?;
@@ -124,7 +124,7 @@ impl SignPlugins for OpenPGPPlugin {
     }
 
     fn generate_keys(
-        value: HashMap<String, String>,
+        value: &HashMap<String, String>,
     ) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)> {
         let parameter = OpenPGPPlugin::attributes_validate(value)?;
         let mut key_params = SecretKeyParamsBuilder::default();

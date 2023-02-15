@@ -9,7 +9,7 @@ pub struct Signers {}
 
 impl Signers {
     //get responding sign plugin for data signing
-    pub fn load_from_data_key(data_key: DataKey) -> Result<Arc<Box<dyn SignPlugins>>> {
+    pub fn load_from_data_key(data_key: &DataKey) -> Result<Arc<Box<dyn SignPlugins>>> {
         match data_key.key_type {
             KeyType::OpenPGP => Ok(Arc::new(Box::new(OpenPGPPlugin::new(data_key)?))),
         }
@@ -17,8 +17,8 @@ impl Signers {
 
     //generating new key, including private & public keys and the certificate, empty if not required.
     pub fn generate_keys(
-        key_type: KeyType,
-        value: HashMap<String, String>,
+        key_type: &KeyType,
+        value: &HashMap<String, String>,
     ) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)> {
         match key_type {
             KeyType::OpenPGP => OpenPGPPlugin::generate_keys(value),

@@ -32,9 +32,9 @@ impl TryFrom<DataKey> for ExportKey {
 
     fn try_from(value: DataKey) -> std::result::Result<Self, Self::Error> {
         Ok(ExportKey{
-            private_key: String::from_utf8_lossy(&value.private_key.unsecure()).to_string(),
-            public_key: String::from_utf8_lossy(&value.public_key.unsecure()).to_string(),
-            certificate: String::from_utf8_lossy(&value.certificate.unsecure()).to_string(),
+            private_key: String::from_utf8_lossy(value.private_key.unsecure()).to_string(),
+            public_key: String::from_utf8_lossy(value.public_key.unsecure()).to_string(),
+            certificate: String::from_utf8_lossy(value.certificate.unsecure()).to_string(),
         })
     }
 }
@@ -59,7 +59,7 @@ pub struct DataKeyDTO {
 }
 
 fn validate_utc_time(expire: &str) -> std::result::Result<(), ValidationError> {
-    if let Err(e) = expire.parse::<DateTime<Utc>>() {
+    if expire.parse::<DateTime<Utc>>().is_err() {
         return Err(ValidationError::new("failed to parse time string to utc"));
     }
     Ok(())
