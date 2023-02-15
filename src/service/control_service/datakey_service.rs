@@ -44,8 +44,6 @@ async fn delete_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: 
 async fn export_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
     let key = repository.into_inner().get_by_id(id.parse::<i32>()?).await?;
     let exported = ExportKey::try_from(key)?;
-    println!("{}", exported.public_key);
-    println!("{}", exported.private_key);
     Ok(HttpResponse::Ok().json(exported))
 }
 

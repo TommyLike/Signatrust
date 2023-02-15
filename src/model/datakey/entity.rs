@@ -10,6 +10,7 @@ use secstr::*;
 #[derive(Debug, Clone)]
 pub enum KeyType {
     OpenPGP,
+    X509
 }
 
 impl FromStr for KeyType {
@@ -18,6 +19,7 @@ impl FromStr for KeyType {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "pgp" => Ok(KeyType::OpenPGP),
+            "x509" => Ok(KeyType::X509),
             _ => Err(Error::UnsupportedTypeError(format!("unsupported data key type {}", s))),
         }
     }
@@ -27,6 +29,7 @@ impl Display for KeyType {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             KeyType::OpenPGP => write!(f, "pgp"),
+            KeyType::X509 => write!(f, "x509"),
         }
     }
 }
@@ -62,8 +65,9 @@ impl ExtendableAttributes for DataKey {
 impl Identity for DataKey {
     fn get_identity(&self) -> String {
         format!(
-            "<ID:{},Email:{},User:{},Type:{}>",
+            "<ID:{},Name:{}, Email:{},User:{},Type:{}>",
             self.id,
+            self.name,
             self.email,
             self.user,
             self.key_type

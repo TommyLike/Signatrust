@@ -27,7 +27,7 @@ use pgp::composed::StandaloneSignature;
 const DETACHED_SIGNATURE: &str = "detached";
 
 #[derive(Debug, Validate, Deserialize)]
-pub struct KeyGenerationParameter {
+pub struct PgpKeyGenerationParameter {
     #[validate(length(min = 4, max = 20, message="invalid openpgp attribute 'name'"))]
     name: String,
     #[validate(email(message="openpgp attribute 'email'"))]
@@ -42,10 +42,10 @@ pub struct KeyGenerationParameter {
     expire_at: String,
 }
 
-impl KeyGenerationParameter {
+impl PgpKeyGenerationParameter {
     pub fn get_key(&self) -> Result<KeyType> {
         return match self.key_type.as_str() {
-            "rsa" => Ok(KeyType::Rsa(self.key_length.parse::<u32>().unwrap())),
+            "rsa" => Ok(KeyType::Rsa(self.key_length.parse::<u32>()?)),
             "ecdh" => Ok(KeyType::ECDH),
             "eddsa" => Ok(KeyType::EdDSA),
             _ => Err(Error::ParameterError(
@@ -67,7 +67,7 @@ fn validate_key_type(key_type: &str) -> std::result::Result<(), ValidationError>
 }
 
 fn validate_key_size(key_size: &str) -> std::result::Result<(), ValidationError> {
-    if !vec!["1024", "2048", "3072", "4096"].contains(&key_size) {
+    if !vec!["2048", "3072", "4096"].contains(&key_size) {
         return Err(ValidationError::new("invalid key size"));
     }
     Ok(())
@@ -94,8 +94,8 @@ pub struct OpenPGPPlugin {
 }
 
 impl OpenPGPPlugin {
-    pub fn attributes_validate(attr: &HashMap<String, String>) -> Result<KeyGenerationParameter> {
-        let parameter: KeyGenerationParameter =
+    pub fn attributes_validate(attr: &HashMap<String, String>) -> Result<PgpKeyGenerationParameter> {
+        let parameter: PgpKeyGenerationParameter =
             serde_json::from_str(serde_json::to_string(&attr)?.as_str())?;
         match parameter.validate() {
             Ok(_) => Ok(parameter),

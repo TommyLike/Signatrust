@@ -1,4 +1,5 @@
 use crate::infra::sign::openpgp::OpenPGPPlugin;
+use crate::infra::sign::x509::X509Plugin;
 use crate::infra::sign::traits::SignPlugins;
 use crate::model::datakey::entity::{DataKey, KeyType};
 use crate::util::error::Result;
@@ -12,6 +13,7 @@ impl Signers {
     pub fn load_from_data_key(data_key: &DataKey) -> Result<Arc<Box<dyn SignPlugins>>> {
         match data_key.key_type {
             KeyType::OpenPGP => Ok(Arc::new(Box::new(OpenPGPPlugin::new(data_key)?))),
+            KeyType::X509 => Ok(Arc::new(Box::new(X509Plugin::new(data_key)?))),
         }
     }
 
@@ -22,6 +24,7 @@ impl Signers {
     ) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)> {
         match key_type {
             KeyType::OpenPGP => OpenPGPPlugin::generate_keys(value),
+            KeyType::X509 => X509Plugin::generate_keys(value),
         }
     }
 }

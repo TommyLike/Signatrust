@@ -18,6 +18,7 @@ use chrono::{OutOfRangeError, ParseError};
 use actix_web::{ResponseError, HttpResponse};
 use validator::ValidationErrors;
 use serde::{Deserialize, Serialize};
+use openssl::error::ErrorStack;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -50,6 +51,8 @@ pub enum Error {
     SignError(String, String),
     #[error("failed to perform pgp {0}")]
     PGPInvokeError(String),
+    #[error("failed to perform openssl {0}")]
+    X509InvokeError(String),
     #[error("invalid parameter error {0}")]
     ParameterError(String),
     #[error("record not found error")]
@@ -240,4 +243,11 @@ impl From<ValidationErrors> for Error {
         Error::ParameterError(format!("{:?}", err.errors()))
     }
 }
+
+impl From<ErrorStack> for Error {
+    fn from(err: ErrorStack) -> Self {
+        Error::X509InvokeError(format!("{:?}", err.errors()))
+    }
+}
+
 
