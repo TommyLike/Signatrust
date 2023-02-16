@@ -46,13 +46,36 @@ We have observed several projects aiming to address these challenges.
    6. WSL Image(todo).
    7. AppImage(todo).
 
-4. **User-friendly key management**: Signatrust provides a standalone UI for key management and can be easily integrated with
-   external account system via OIDC protocol. Administrators can generate & import & export & delete keys through the interface.
+4. **User-friendly key management**: Signatrust offers a user-friendly, standalone interface for managing sensitive keys,
+   which can be seamlessly integrated with external account systems using the OpenID Connect (OIDC) protocol. Administrators
+   have the ability to generate, import, export, and delete keys through this intuitive interface.
 
 # System Context
 ![System Context](./docs/images/System%20Context.png)
 # Performance
 
 # Quick Start Guide
+## Local development
+To ensure the security of sensitive data, Signatrust requires an external KMS system for encryption and decryption. However,
+to run the system locally for development purposes, you will need to configure a **dummy** KMS provider
+```shell
+[kms-provider]
+type = "dummy"
+```
+Additionally, we have provided a script to set up the MySQL database in a Docker environment. To use the script, you will
+need to install the Docker server, the MySQL binary, and the [Sqlx binary](https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md#enable-building-in-offline-mode-with-query).
+Once you have these installed, simply run the
+command below:
+```shell
+make db
+```
+Run these command correspondingly to build binary or launching server:
+```shell
+# build binary
+cargo build --bin control-server/data-server/client
+# running command
+RUST_BACKTRACE=full RUST_LOG=debug ./target/debug/<binary> --config <config-file-path>
+```
+
 
 # Contribute

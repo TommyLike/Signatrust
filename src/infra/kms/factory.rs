@@ -1,4 +1,5 @@
 use crate::infra::kms::huaweicloud::HuaweiCloudKMS;
+use crate::infra::kms::dummy::DummyKMS;
 use crate::infra::kms::kms_provider::KMSProvider;
 use crate::util::error::{Error, Result};
 use config::Value;
@@ -9,6 +10,7 @@ use std::sync::Arc;
 #[derive(Debug)]
 enum KMSType {
     HuaweiCloud,
+    Dummy,
 }
 
 impl FromStr for KMSType {
@@ -17,6 +19,7 @@ impl FromStr for KMSType {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "huaweicloud" => Ok(KMSType::HuaweiCloud),
+            "dummy" => Ok(KMSType::Dummy),
             _ => Err(Error::UnsupportedTypeError(format!("{} kms type", s))),
         }
     }
@@ -36,6 +39,7 @@ impl KMSProviderFactory {
         info!("kms provider configured with {:?}", kms_type);
         match kms_type {
             KMSType::HuaweiCloud => Ok(Arc::new(Box::new(HuaweiCloudKMS::new(config)?))),
+            KMSType::Dummy => Ok(Arc::new(Box::new(DummyKMS::new(config)?))),
         }
     }
 }
