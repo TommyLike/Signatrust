@@ -19,6 +19,7 @@ use actix_web::{ResponseError, HttpResponse};
 use validator::ValidationErrors;
 use serde::{Deserialize, Serialize};
 use openssl::error::ErrorStack;
+use actix_web::cookie::KeyError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -57,6 +58,10 @@ pub enum Error {
     ParameterError(String),
     #[error("record not found error")]
     NotFoundError,
+    #[error("invalid user")]
+    UnauthorizedError,
+    #[error("invalid cookie key found")]
+    InvalidCookieKeyError,
 
     //client error
     #[error("file type not supported {0}")]
@@ -96,6 +101,12 @@ impl ResponseError for Error {
             Error::NotFoundError => {
                 warn!("record not found error: {}", self.to_string());
                 HttpResponse::NotFound().json(ErrorMessage{
+                    detail: self.to_string()
+                })
+            }
+            Error::UnauthorizedError => {
+                warn!("authorized: {}", self.to_string());
+                HttpResponse::Unauthorized().json(ErrorMessage{
                     detail: self.to_string()
                 })
             }
@@ -247,6 +258,12 @@ impl From<ValidationErrors> for Error {
 impl From<ErrorStack> for Error {
     fn from(err: ErrorStack) -> Self {
         Error::X509InvokeError(format!("{:?}", err.errors()))
+    }
+}
+
+impl From<KeyError> for Error {
+    fn from(_: KeyError) -> Self {
+        Error::InvalidCookieKeyError
     }
 }
 

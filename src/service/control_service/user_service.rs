@@ -1,24 +1,35 @@
-use actix_web::{
-   HttpResponse, Responder, Result, web, Scope
-};
-use serde::Serialize;
+use actix_web::{HttpResponse, Responder, Result, web, Scope, HttpRequest, HttpMessage, FromRequest, dev::Payload};
+use std::future::{ready, Ready};
+use serde::{Deserialize, Serialize};
 use crate::infra::database::model::datakey::repository::EncryptedDataKeyRepository;
 use crate::util::error::Error;
+use super::model::user::dto::UserIdentity;
+use actix_identity::Identity;
 
-#[derive(Serialize)]
-struct FakeObject {
-    id: String,
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AuthData {
+    pub email: String
 }
 
-async fn get_user(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
-    let obj = FakeObject {
-        id: id.to_string(),
-    };
-    Ok(web::Json(obj))
+async fn login(req: HttpRequest, repository: web::Data<EncryptedDataKeyRepository>, auth_data: web::Json<AuthData>) -> Result<impl Responder, Error> {
+    Identity::login(&req.extensions(), auth_data.email.to_string()).unwrap();
+    Ok(HttpResponse::NoContent().finish())
 }
+
+async fn logout(repository: web::Data<EncryptedDataKeyRepository>, id: Identity) -> Result<impl Responder, Error> {
+    id.logout();
+    Ok( HttpResponse::NoContent().finish())
+}
+
+async fn callback(repository: web::Data<EncryptedDataKeyRepository>, user: UserIdentity) -> Result<impl Responder, Error> {
+    Ok( HttpResponse::NoContent().finish())
+}
+
+
 
 pub fn get_scope() -> Scope {
     web::scope("/users")
-        .service(
-            web::resource("/{id}").route(web::get().to(get_user)))
+        .service(web::resource("/login").route(web::post().to(login)))
+        .service(web::resource("/logout").route(web::post().to(logout)))
+        .service(web::resource("/callback").route(web::post().to(callback)))
 }

@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, atomic::AtomicBool, RwLock};
 use std::sync::atomic::Ordering;
 
-use actix_web::{App, HttpServer, middleware, web};
+use actix_web::{App, HttpServer, middleware, web, cookie::Key};
 use config::Config;
 use openssl::ssl::{SslAcceptor, SslAcceptorBuilder, SslFiletype, SslMethod};
 use secstr::*;
@@ -17,6 +17,9 @@ use tonic::{
         Identity, server::{TcpConnectInfo, TlsConnectInfo}, Server, ServerTlsConfig,
     },
 };
+use actix_identity::IdentityMiddleware;
+use actix_session::{config::PersistentSession, storage::CookieSessionStore, SessionMiddleware};
+use time::Duration as timeDuration;
 
 use crate::infra::cipher::algorithm::{aes::Aes256GcmEncryptor, traits::Encryptor};
 use crate::infra::cipher::engine::{EncryptionEngine, EncryptionEngineWithClusterKey};
@@ -79,6 +82,8 @@ impl ControlServer {
         )
             .parse()?;
 
+        let key = self.server_config.read()?.get_string("control-server.cookie_key")?;
+
         info!("control server starts");
         // Start http server
         let data_key_repository = self.data_key_repository.clone();
@@ -87,6 +92,17 @@ impl ControlServer {
                 // enable logger
                 .app_data(data_key_repository.clone())
                 .wrap(middleware::Logger::default())
+                .wrap(IdentityMiddleware::default())
+                .wrap(
+                    SessionMiddleware::builder(
+                        CookieSessionStore::default(), Key::from(key.as_bytes()))
+                        .session_lifecycle(PersistentSession::default().session_ttl(timeDuration::hours(1)))
+                        .cookie_name("signatrust".to_owned())
+                        .cookie_secure(false)
+                        .cookie_domain(None)
+                        .cookie_path("/".to_owned())
+                        .build(),
+                )
                 .service(web::scope("/api/v1")
                     .service(user_service::get_scope())
                     .service(datakey_service::get_scope()))

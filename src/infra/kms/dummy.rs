@@ -16,12 +16,12 @@ impl DummyKMS {
 #[async_trait]
 impl KMSProvider for DummyKMS {
     async fn encode(&self, content: String) -> Result<String> {
-        println!("dummy kms used for encoding, please don't use it in production environment");
+        warn!("dummy kms used for encoding, please don't use it in production environment");
         Ok(content)
     }
 
     async fn decode(&self, content: String) -> Result<String> {
-        println!("dummy kms used for decoding, please don't use it in production environment");
+        warn!("dummy kms used for decoding, please don't use it in production environment");
         Ok(content)
     }
 }

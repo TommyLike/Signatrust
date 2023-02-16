@@ -8,6 +8,7 @@ server_port = "8080"
 [control-server]
 server_ip = "0.0.0.0"
 server_port = "8088"
+cookie_key = "2B5AEC57F7CC4FF8B4120AA7E4527C7B597CAF43183E453A9B981991E6FACB76"
 [kms-provider]
 type = "dummy"
 kms_id = "65ccb4d8-cc45-4139-b380-2fcff184ac4f"
