@@ -24,7 +24,7 @@ pub(super) struct ClusterKeyDTO {
 impl ClusterKeyDTO {
     pub async fn encrypt(
         cluster_key: &ClusterKey,
-        kms_provider: Arc<Box<dyn KMSProvider>>,
+        kms_provider: &Arc<Box<dyn KMSProvider>>,
     ) -> Result<Self> {
         Ok(Self {
             id: cluster_key.id,
@@ -39,11 +39,11 @@ impl ClusterKeyDTO {
             expire_at: cluster_key.expire_at,
         })
     }
-    pub async fn decrypt(&self, kms_provider: Arc<Box<dyn KMSProvider>>) -> Result<ClusterKey> {
+    pub async fn decrypt(&self, kms_provider: &Arc<Box<dyn KMSProvider>>) -> Result<ClusterKey> {
         Ok(ClusterKey {
             id: self.id,
             data: SecVec::new(key::decode_hex_string_to_u8(
-                kms_provider
+                &kms_provider
                     .decode(String::from_utf8(self.data.clone())?)
                     .await?,
             )),

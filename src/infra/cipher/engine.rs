@@ -60,7 +60,7 @@ impl EncryptionEngineWithClusterKey {
 impl EncryptionEngineWithClusterKey {
     fn append_cluster_key_hex(&self, data: &mut Vec<u8>) -> Vec<u8> {
         let mut result = vec![];
-        result.append(&mut key::decode_hex_string_to_u8(format!(
+        result.append(&mut key::decode_hex_string_to_u8(&format!(
             "{:04X}",
             self.latest_cluster_key.id
         )));

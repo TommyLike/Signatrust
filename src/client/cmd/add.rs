@@ -151,7 +151,7 @@ impl SignCommand for CommandAddHandler {
     }
 
     fn validate(&self) -> Result<()> {
-        FileHandlerFactory::get_handler(self.file_type.clone()).validate_options(&self.get_sign_options())
+        FileHandlerFactory::get_handler(&self.file_type).validate_options(&self.get_sign_options())
     }
 
     //Signing process are described below.

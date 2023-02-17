@@ -51,7 +51,7 @@ impl FileHandler for RpmFileHandler {
     //2. header and content
     async fn split_data(&self, path: &PathBuf, sign_options: &mut HashMap<String, String>) -> Result<Vec<Vec<u8>>> {
         let file = File::open(path)?;
-        let mut package = RPMPackage::parse(&mut BufReader::new(file))?;
+        let package = RPMPackage::parse(&mut BufReader::new(file))?;
         let mut header_bytes = Vec::<u8>::with_capacity(1024);
         //collect head and head&payload arrays
         package.metadata.header.write(&mut header_bytes)?;

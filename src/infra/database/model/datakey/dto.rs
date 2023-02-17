@@ -37,7 +37,7 @@ pub(super) struct DataKeyDTO {
 impl DataKeyDTO {
     pub async fn encrypt(
         data_key: &DataKey,
-        encryption_engine: Arc<Box<dyn EncryptionEngine>>,
+        encryption_engine: &Arc<Box<dyn EncryptionEngine>>,
     ) -> Result<Self> {
         Ok(Self {
             id: data_key.id,
@@ -71,7 +71,7 @@ impl DataKeyDTO {
 
     pub async fn decrypt(
         &self,
-        encryption_engine: Arc<Box<dyn EncryptionEngine>>,
+        encryption_engine: &Arc<Box<dyn EncryptionEngine>>,
     ) -> Result<DataKey> {
         Ok(DataKey {
             id: self.id,
@@ -82,13 +82,13 @@ impl DataKeyDTO {
             attributes: serde_json::from_str(self.attributes.as_str())?,
             key_type: KeyType::from_str(&self.key_type)?,
             private_key: SecVec::new(encryption_engine
-                .decode(key::decode_hex_string_to_u8(self.private_key.clone()))
+                .decode(key::decode_hex_string_to_u8(&self.private_key))
                 .await?),
             public_key: SecVec::new(encryption_engine
-                .decode(key::decode_hex_string_to_u8(self.public_key.clone()))
+                .decode(key::decode_hex_string_to_u8(&self.public_key))
                 .await?),
             certificate: SecVec::new(encryption_engine
-                .decode(key::decode_hex_string_to_u8(self.certificate.clone()))
+                .decode(key::decode_hex_string_to_u8(&self.certificate))
                 .await?),
             create_at: self.create_at,
             expire_at: self.expire_at,

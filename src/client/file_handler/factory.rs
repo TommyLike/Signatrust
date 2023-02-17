@@ -8,7 +8,7 @@ pub struct FileHandlerFactory {
 }
 
 impl FileHandlerFactory {
-    pub fn get_handler(file_type: FileType) -> Box<dyn FileHandler> {
+    pub fn get_handler(file_type: &FileType) -> Box<dyn FileHandler> {
         match file_type {
             FileType::RPM => {
                 Box::new(RpmFileHandler::new())

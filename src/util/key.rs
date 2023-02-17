@@ -7,6 +7,6 @@ pub fn encode_u8_to_hex_string(value: &[u8]) -> String {
         .collect::<String>()
 }
 
-pub fn decode_hex_string_to_u8(value: String) -> Vec<u8> {
+pub fn decode_hex_string_to_u8(value: &String) -> Vec<u8> {
     hex::decode(value).unwrap()
 }
