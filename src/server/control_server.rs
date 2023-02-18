@@ -35,6 +35,10 @@ use crate::model::datakey::repository::Repository as DatakeyRepository;
 use crate::service::control_service::*;
 use crate::util::error::Error::KeyParseError;
 use crate::util::error::Result;
+use openidconnect::core::{
+    CoreClient,
+};
+use openidconnect::{JsonWebKeySet, ClientId, AuthUrl, UserInfoUrl, TokenUrl, RedirectUrl, ClientSecret, IssuerUrl};
 
 pub struct ControlServer {
     server_config: Arc<RwLock<Config>>,
@@ -69,6 +73,18 @@ impl ControlServer {
         Ok(server)
     }
 
+    pub fn initialize_oidc_client(&self) -> Result<CoreClient> {
+        Ok(CoreClient::new(
+            ClientId::new(self.server_config.read()?.get_string("oidc.client_id")?),
+            Some(ClientSecret::new(self.server_config.read()?.get_string("oidc.client_secret")?)),
+            IssuerUrl::new(self.server_config.read()?.get_string("oidc.auth_url")?)?,
+            AuthUrl::new(self.server_config.read()?.get_string("oidc.auth_url")?)?,
+            Some(TokenUrl::new(self.server_config.read()?.get_string("oidc.token_url")?)?),
+            Some(UserInfoUrl::new(self.server_config.read()?.get_string("oidc.userinfo_url")?)?),
+            JsonWebKeySet::default()).set_redirect_uri(RedirectUrl::new(self.server_config.read()?.get_string("oidc.redirect_url")?)?,
+        ))
+    }
+
     pub async fn run(&self) -> Result<()> {
         //start actix web server
         let addr: SocketAddr = format!(
@@ -84,6 +100,9 @@ impl ControlServer {
 
         let key = self.server_config.read()?.get_string("control-server.cookie_key")?;
 
+        //initialize oidc client
+        let client = web::Data::new(self.initialize_oidc_client()?);
+
         info!("control server starts");
         // Start http server
         let data_key_repository = self.data_key_repository.clone();
@@ -91,6 +110,7 @@ impl ControlServer {
             App::new()
                 // enable logger
                 .app_data(data_key_repository.clone())
+                .app_data(client.clone())
                 .wrap(middleware::Logger::default())
                 .wrap(IdentityMiddleware::default())
                 .wrap(

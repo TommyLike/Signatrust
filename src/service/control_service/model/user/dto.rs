@@ -2,7 +2,9 @@ use actix_web::{HttpResponse, Responder, Result, web, Scope, HttpRequest, HttpMe
 use crate::util::error::{Error};
 use std::future::{ready, Ready};
 use actix_identity::Identity;
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UserIdentity {
     pub email: String,
 }

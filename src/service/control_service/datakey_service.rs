@@ -10,8 +10,10 @@ use validator::Validate;
 use crate::infra::sign::signers::Signers;
 use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::repository::Repository;
+use super::model::user::dto::UserIdentity;
+use crate::model::datakey::traits::Identity;
 
-async fn create_data_key(repository: web::Data<EncryptedDataKeyRepository>, datakey: web::Json<DataKeyDTO>,) -> Result<impl Responder, Error> {
+async fn create_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, datakey: web::Json<DataKeyDTO>,) -> Result<impl Responder, Error> {
     datakey.validate()?;
     let mut key = DataKey::try_from(datakey.0)?;
     let (private_key, public_key, certificate) =
@@ -20,10 +22,11 @@ async fn create_data_key(repository: web::Data<EncryptedDataKeyRepository>, data
     key.public_key = SecVec::new(public_key);
     key.certificate = SecVec::new(certificate);
     key.key_state = KeyState::Enabled;
+    info!("user {0} created a key pairs {1}", user.email, key.get_identity());
     Ok(HttpResponse::Created().json(DataKeyDTO::try_from(repository.into_inner().create(&key).await?)?))
 }
 
-async fn list_data_key(repository: web::Data<EncryptedDataKeyRepository>) -> Result<impl Responder, Error> {
+async fn list_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>) -> Result<impl Responder, Error> {
     let keys = repository.into_inner().get_all().await?;
     let mut results = vec![];
     for k in keys {
@@ -32,30 +35,32 @@ async fn list_data_key(repository: web::Data<EncryptedDataKeyRepository>) -> Res
     Ok(HttpResponse::Ok().json(results))
 }
 
-async fn show_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+async fn show_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
     let key = repository.into_inner().get_by_id(id.parse::<i32>()?).await?;
     Ok(HttpResponse::Ok().json(DataKeyDTO::try_from(key)?))
 }
 
-async fn delete_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+async fn delete_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+    info!("user {0} delete a key {1}", user.email, id);
     repository.into_inner().delete_by_id(id.parse::<i32>()?).await?;
     Ok(HttpResponse::Ok())
 }
 
-async fn export_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+async fn export_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+    info!("user {0} export a key {1}", user.email, id);
     let key = repository.into_inner().get_by_id(id.parse::<i32>()?).await?;
     let exported = ExportKey::try_from(key)?;
     Ok(HttpResponse::Ok().json(exported))
 }
 
-async fn enable_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+async fn enable_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
     let repo = repository.into_inner();
     let key = repo.get_by_id(id.parse::<i32>()?).await?;
     repo.update_state(key.id, KeyState::Enabled).await?;
     Ok(HttpResponse::Ok())
 }
 
-async fn disable_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+async fn disable_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
     let repo = repository.into_inner();
     let key = repo.get_by_id(id.parse::<i32>()?).await?;
     repo.update_state(key.id, KeyState::Disabled).await?;

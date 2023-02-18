@@ -20,6 +20,9 @@ use validator::ValidationErrors;
 use serde::{Deserialize, Serialize};
 use openssl::error::ErrorStack;
 use actix_web::cookie::KeyError;
+use openidconnect::url::ParseError as OIDCParseError;
+use openidconnect::ConfigurationError;
+use openidconnect::UserInfoError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -62,6 +65,8 @@ pub enum Error {
     UnauthorizedError,
     #[error("invalid cookie key found")]
     InvalidCookieKeyError,
+    #[error("failed to perform auth operation {0}")]
+    AuthError(String),
 
     //client error
     #[error("file type not supported {0}")]
@@ -266,5 +271,24 @@ impl From<KeyError> for Error {
         Error::InvalidCookieKeyError
     }
 }
+
+impl From<OIDCParseError> for Error {
+    fn from(err: OIDCParseError) -> Self {
+        Error::ConfigError(err.to_string())
+    }
+}
+
+impl From<ConfigurationError> for Error {
+    fn from(err: ConfigurationError) -> Self {
+        Error::AuthError(err.to_string())
+    }
+}
+
+impl From<UserInfoError<openidconnect::reqwest::Error<reqwest::Error>>> for Error {
+    fn from(err: UserInfoError<openidconnect::reqwest::Error<reqwest::Error>>) -> Self {
+    Error::AuthError(err.to_string())
+}
+}
+
 
 

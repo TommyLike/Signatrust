@@ -45,7 +45,7 @@ pub struct DataKeyDTO {
     pub id: i32,
     #[validate(length(min = 4, max = 20))]
     pub name: String,
-    #[validate(email)]
+    #[serde(skip_deserializing)]
     pub email: String,
     #[validate(length(min = 0, max = 100))]
     pub description: String,
@@ -65,6 +65,24 @@ fn validate_utc_time(expire: &str) -> std::result::Result<(), ValidationError> {
         return Err(ValidationError::new("failed to parse time string to utc"));
     }
     Ok(())
+}
+
+impl TryFrom<DataKey> for DataKeyDTO {
+    type Error = Error;
+
+    fn try_from(dto: DataKey) -> Result<Self> {
+        Ok(DataKeyDTO {
+            id: dto.id,
+            name: dto.name,
+            description: dto.description,
+            user: dto.user,
+            email: dto.email,
+            attributes: dto.attributes,
+            key_type: dto.key_type.to_string(),
+            create_at: dto.create_at.to_string(),
+            expire_at: dto.expire_at.to_string(),
+        })
+    }
 }
 
 
