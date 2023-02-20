@@ -1,5 +1,5 @@
 use crate::infra::kms::kms_provider::KMSProvider;
-use crate::util::error::{Error, Result};
+use crate::util::error::{Result};
 use config::Value;
 use std::collections::HashMap;
 use async_trait::async_trait;
@@ -8,7 +8,7 @@ pub struct DummyKMS {
 }
 
 impl DummyKMS {
-    pub fn new(config: &HashMap<String, Value>) -> Result<DummyKMS> {
+    pub fn new(_config: &HashMap<String, Value>) -> Result<DummyKMS> {
         Ok(DummyKMS {})
     }
 }

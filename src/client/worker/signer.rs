@@ -1,20 +1,19 @@
-use crate::client::{file_handler, sign_identity::SignIdentity};
-use crate::util::error::Result;
-use async_channel::Sender;
+use crate::client::{sign_identity::SignIdentity};
+
+
 use crate::client::worker::traits::SignHandler;
 use crate::client::file_handler::traits::FileHandler;
 use async_trait::async_trait;
-use crate::client::load_balancer::single::SingleLoadBalancer;
+
 pub mod signatrust {
     tonic::include_proto!("signatrust");
 }
-use tokio_stream::StreamExt;
+
 use tonic::transport::Channel;
 use signatrust::{
     signatrust_client::SignatrustClient, SignStreamRequest,
-    SignStreamResponse,
 };
-use tonic::{Request, Response, Status, Streaming};
+
 use crate::util::error::Error;
 use std::io::{Cursor, Read};
 
@@ -36,7 +35,7 @@ impl RemoteSigner {
 
 #[async_trait]
 impl SignHandler for RemoteSigner {
-    async fn process(&mut self, handler: Box<dyn FileHandler>, item: SignIdentity) -> SignIdentity {
+    async fn process(&mut self, _handler: Box<dyn FileHandler>, item: SignIdentity) -> SignIdentity {
         let mut signed_content = Vec::new();
         let read_data = item.raw_content.borrow().clone();
         for sign_content in read_data.into_iter() {

@@ -1,12 +1,12 @@
-use std::collections::BTreeMap;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{Cursor, Read};
-use std::str::from_utf8;
-use std::str::FromStr;
 
-use actix_web::cookie::time::Date;
-use chrono::{DateTime, Duration, Utc};
+use std::collections::HashMap;
+
+
+
+
+
+
+use chrono::{DateTime, Utc};
 use openssl::asn1::Asn1Time;
 use openssl::cms::{CmsContentInfo, CMSOptions};
 use openssl::dsa::Dsa;
@@ -16,7 +16,7 @@ use openssl::rsa::Rsa;
 use openssl::x509;
 use secstr::SecVec;
 use serde::Deserialize;
-use smallvec::*;
+
 use validator::{Validate, ValidationError};
 
 use crate::model::datakey::entity::DataKey;
@@ -68,7 +68,7 @@ impl X509KeyGenerationParameter {
         x509_name.append_entry_by_text("L", &self.locality)?;
         x509_name.append_entry_by_text("ST", &self.province_name)?;
         x509_name.append_entry_by_text("C", &self.country_name)?;
-        return Ok(x509_name.build())
+        Ok(x509_name.build())
     }
 }
 
@@ -94,7 +94,7 @@ fn validate_utc_time(expire: &str) -> std::result::Result<(), ValidationError> {
                 return Err(ValidationError::new("expire time less than current time"))
             }
         },
-        Err(e) => {
+        Err(_e) => {
             return Err(ValidationError::new("failed to parse time string to utc"));
         }
     }
@@ -136,9 +136,9 @@ impl SignPlugins for X509Plugin {
     }
 
     fn parse_attributes(
-        private_key: Option<Vec<u8>>,
-        public_key: Option<Vec<u8>>,
-        certificate: Option<Vec<u8>>,
+        _private_key: Option<Vec<u8>>,
+        _public_key: Option<Vec<u8>>,
+        _certificate: Option<Vec<u8>>,
     ) -> HashMap<String, String> {
         todo!()
     }
@@ -165,9 +165,9 @@ impl SignPlugins for X509Plugin {
         ))
     }
 
-    fn sign(&self, content: Vec<u8>, options: HashMap<String, String>) -> Result<Vec<u8>> {
+    fn sign(&self, content: Vec<u8>, _options: HashMap<String, String>) -> Result<Vec<u8>> {
         let private_key = PKey::private_key_from_pem(self.private_key.unsecure())?;
-        let certificate = x509::X509::from_pem(&self.certificate.unsecure())?;
+        let certificate = x509::X509::from_pem(self.certificate.unsecure())?;
         //cms option reference: https://man.openbsd.org/CMS_sign.3
         let cms_signature = CmsContentInfo::sign(
             Some(&certificate),

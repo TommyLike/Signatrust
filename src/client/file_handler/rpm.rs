@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use crate::util::error::Result;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use rpm::{Header, IndexSignatureTag, RPMError, RPMPackage};
-use crate::util::error;
+use rpm::{Header, IndexSignatureTag, RPMPackage};
+
 use super::sequential_cursor::SeqCursor;
 use uuid::Uuid;
 use sha1;
@@ -49,7 +49,7 @@ impl FileHandler for RpmFileHandler {
     //rpm has two sections need to be signed
     //1. header
     //2. header and content
-    async fn split_data(&self, path: &PathBuf, sign_options: &mut HashMap<String, String>) -> Result<Vec<Vec<u8>>> {
+    async fn split_data(&self, path: &PathBuf, _sign_options: &mut HashMap<String, String>) -> Result<Vec<Vec<u8>>> {
         let file = File::open(path)?;
         let package = RPMPackage::parse(&mut BufReader::new(file))?;
         let mut header_bytes = Vec::<u8>::with_capacity(1024);
@@ -61,7 +61,7 @@ impl FileHandler for RpmFileHandler {
         Ok(vec![header_bytes, header_and_content])
 
     }
-    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: &HashMap<String, String>) -> Result<(String, String)> {
+    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, _sign_options: &HashMap<String, String>) -> Result<(String, String)> {
         let temp_rpm = temp_dir.join(Uuid::new_v4().to_string());
         let file = File::open(path)?;
         let mut package = RPMPackage::parse(&mut BufReader::new(file))?;

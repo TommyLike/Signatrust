@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use crate::client::{file_handler, sign_identity::SignIdentity};
-use crate::util::error::Result;
-use async_channel::Sender;
+
+use crate::client::{sign_identity::SignIdentity};
+
+
 use crate::client::worker::traits::SignHandler;
 use crate::client::file_handler::traits::FileHandler;
 use async_trait::async_trait;

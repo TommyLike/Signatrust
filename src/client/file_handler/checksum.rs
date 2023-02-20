@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use crate::util::error::Result;
 use tokio::fs;
 use uuid::Uuid;
-use std::io::Write;
+
 use std::collections::HashMap;
 use crate::util::error::Error;
 use crate::client::cmd::options;
@@ -38,7 +38,7 @@ impl FileHandler for CheckSumFileHandler {
     }
 
     /* when assemble checksum signature when only create another .asc file separately */
-    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, sign_options: &HashMap<String, String>) -> Result<(String, String)> {
+    async fn assemble_data(&self, path: &PathBuf, data: Vec<Vec<u8>>, temp_dir: &PathBuf, _sign_options: &HashMap<String, String>) -> Result<(String, String)> {
         let temp_file = temp_dir.join(Uuid::new_v4().to_string());
         //convert bytes into string
         let result = String::from_utf8_lossy(&data[0]);

@@ -1,19 +1,19 @@
-use actix_web::{HttpResponse, Responder, Result, web, Scope, HttpRequest, HttpMessage, FromRequest, dev::Payload};
-use std::future::{ready, Ready};
+use actix_web::{HttpResponse, Responder, Result, web, Scope, HttpRequest, HttpMessage};
+
 use serde::{Deserialize, Serialize};
-use crate::infra::database::model::datakey::repository::EncryptedDataKeyRepository;
+
 use crate::util::error::Error;
 use super::model::user::dto::UserIdentity;
 use actix_identity::Identity;
-use openidconnect::{AdditionalClaims, EmptyAdditionalClaims, UserInfoClaims};
+use openidconnect::{AdditionalClaims, UserInfoClaims};
 use openidconnect::{
-    AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce,
-    OAuth2TokenResponse, RedirectUrl, AuthUrl, UserInfoUrl, TokenUrl, JsonWebKeySet, core::CoreResponseType, core::CoreClient, core::CoreGenderClaim
+    AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce,
+    OAuth2TokenResponse, core::CoreResponseType, core::CoreClient, core::CoreGenderClaim
 };
-use openidconnect::core::CoreTokenResponse;
+
 use openidconnect::Scope as OIDCScore;
 use openidconnect::reqwest::async_http_client;
-use crate::util::error;
+
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EmailClaims {
@@ -60,7 +60,7 @@ async fn callback(req: HttpRequest, client: web::Data<CoreClient>, code: web::Qu
             Ok(HttpResponse::Found().insert_header(("Location", "/")).finish())
         }
         Err(err) => {
-            return Err(Error::AuthError(format!("failed to get oidc token {}", err.to_string())))
+            Err(Error::AuthError(format!("failed to get oidc token {}", err)))
         }
     }
 }

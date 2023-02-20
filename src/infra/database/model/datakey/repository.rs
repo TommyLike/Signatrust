@@ -1,15 +1,15 @@
 use super::dto::DataKeyDTO;
-use crate::infra::cipher::algorithm::traits::Algorithm;
+
 use crate::infra::cipher::engine::EncryptionEngine;
 use crate::infra::database::pool::DbPool;
 use crate::infra::kms::kms_provider::KMSProvider;
 use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::repository::Repository;
-use crate::util::error::{Error, Result};
+use crate::util::error::{Result};
 use async_trait::async_trait;
 use std::boxed::Box;
 use std::sync::Arc;
-use actix_web::web::Data;
+
 
 #[derive(Clone)]
 pub struct EncryptedDataKeyRepository {

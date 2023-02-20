@@ -8,19 +8,19 @@ use pgp::composed::{key::SecretKeyParamsBuilder, KeyDetails, KeyType, SecretKey,
 use pgp::crypto::{hash::HashAlgorithm, sym::SymmetricKeyAlgorithm};
 use pgp::packet::SignatureConfig;
 use pgp::packet::*;
-use pgp::packet::{KeyFlags, UserAttribute, UserId};
+
 use pgp::types::KeyTrait;
-use pgp::types::{CompressionAlgorithm, PublicKeyTrait, SecretKeyTrait};
+use pgp::types::{CompressionAlgorithm, SecretKeyTrait};
 use pgp::Deserializable;
 use serde::Deserialize;
 use smallvec::*;
-use std::collections::BTreeMap;
+
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{Cursor, Read};
+
+use std::io::{Cursor};
 use std::str::from_utf8;
-use std::str::FromStr;
-use actix_web::cookie::time::Date;
+
+
 use validator::{Validate, ValidationError};
 use pgp::composed::StandaloneSignature;
 
@@ -81,7 +81,7 @@ fn validate_utc_time(expire: &str) -> std::result::Result<(), ValidationError> {
                 return Err(ValidationError::new("expire time less than current time"))
             }
         },
-        Err(e) => {
+        Err(_e) => {
             return Err(ValidationError::new("failed to parse time string to utc"));
         }
     }
@@ -121,9 +121,9 @@ impl SignPlugins for OpenPGPPlugin {
     }
 
     fn parse_attributes(
-        private_key: Option<Vec<u8>>,
-        public_key: Option<Vec<u8>>,
-        certificate: Option<Vec<u8>>,
+        _private_key: Option<Vec<u8>>,
+        _public_key: Option<Vec<u8>>,
+        _certificate: Option<Vec<u8>>,
     ) -> HashMap<String, String> {
         todo!()
     }

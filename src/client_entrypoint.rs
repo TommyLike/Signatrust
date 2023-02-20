@@ -1,6 +1,7 @@
+#![allow(dead_code)]
 use std::env;
 use crate::util::error::Result;
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use crate::client::cmd::add;
 use config::{Config, File};
 use std::sync::{Arc, atomic::AtomicBool, RwLock};

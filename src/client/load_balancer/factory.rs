@@ -1,4 +1,4 @@
-use tonic::transport::{Channel, Certificate, ClientTlsConfig, Identity};
+use tonic::transport::{Channel, ClientTlsConfig, Identity};
 use std::collections::HashMap;
 use config::Value;
 use crate::client::load_balancer::dns::DNSLoadBalancer;

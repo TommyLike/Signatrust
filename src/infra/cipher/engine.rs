@@ -122,7 +122,7 @@ impl EncryptionEngine for EncryptionEngineWithClusterKey {
         //2. use cluster key to decrypt data
         let cluster_key = self.get_used_cluster_key(&content[0..KEY_SIZE]).await?;
         self.encryptor.decrypt(
-            self.latest_cluster_key.data.unsecure().to_owned(),
+            cluster_key.data.unsecure().to_owned(),
             content[KEY_SIZE..].to_vec(),
         )
     }

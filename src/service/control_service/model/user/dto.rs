@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Responder, Result, web, Scope, HttpRequest, HttpMessage, FromRequest, dev::Payload};
+use actix_web::{Result, HttpRequest, FromRequest, dev::Payload};
 use crate::util::error::{Error};
 use std::future::{ready, Ready};
 use actix_identity::Identity;

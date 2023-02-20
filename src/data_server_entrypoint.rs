@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::util::error::Result;
 use clap::Parser;
 use config::Config;

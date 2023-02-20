@@ -7,10 +7,10 @@ use tokio::fs;
 #[async_trait]
 pub trait FileHandler: Send + Sync {
 
-    fn validate_options(&self, sign_options: &HashMap<String, String>) -> Result<()> {
+    fn validate_options(&self, _sign_options: &HashMap<String, String>) -> Result<()> {
         Ok(())
     }
-    async fn split_data(&self, path: &PathBuf, sign_options: &mut HashMap<String, String>) -> Result<Vec<Vec<u8>>> {
+    async fn split_data(&self, path: &PathBuf, _sign_options: &mut HashMap<String, String>) -> Result<Vec<Vec<u8>>> {
         let content = fs::read(path).await?;
         Ok(vec![content])
     }
