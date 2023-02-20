@@ -65,7 +65,7 @@ pub enum Error {
     UnauthorizedError,
     #[error("invalid cookie key found")]
     InvalidCookieKeyError,
-    #[error("failed to perform auth operation {0}")]
+    #[error("failed to perform auth operation: {0}")]
     AuthError(String),
 
     //client error

@@ -12,7 +12,7 @@ use openidconnect::{
 };
 use openidconnect::core::CoreTokenResponse;
 use openidconnect::Scope as OIDCScore;
-use openidconnect::reqwest::http_client;
+use openidconnect::reqwest::async_http_client;
 use crate::util::error;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -50,11 +50,11 @@ async fn logout(id: Identity) -> Result<impl Responder, Error> {
 async fn callback(req: HttpRequest, client: web::Data<CoreClient>, code: web::Query<Code>) -> Result<impl Responder, Error> {
     match client
         .exchange_code(AuthorizationCode::new(code.code.clone()))
-        .request(http_client) {
+        .request_async(async_http_client).await {
         Ok(token_response) => {
             let userinfo_claim_result: UserInfoClaims<EmailClaims, CoreGenderClaim> = client
                 .user_info(token_response.access_token().to_owned(), None)?
-                .request(http_client)?;
+                .request_async(async_http_client).await?;
             Identity::login(&req.extensions(),
                             userinfo_claim_result.additional_claims().email.clone()).unwrap();
             Ok(HttpResponse::Found().insert_header(("Location", "/")).finish())
@@ -72,5 +72,5 @@ pub fn get_scope() -> Scope {
         .service(web::resource("/").route(web::get().to(info)))
         .service(web::resource("/login").route(web::get().to(login)))
         .service(web::resource("/logout").route(web::post().to(logout)))
-        .service(web::resource("/callback").route(web::post().to(callback)))
+        .service(web::resource("/callback").route(web::get().to(callback)))
 }
