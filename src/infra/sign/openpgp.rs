@@ -3,7 +3,7 @@ use crate::model::datakey::entity::DataKey;
 use crate::model::datakey::traits::Identity;
 use crate::util::error::{Error, Result};
 use chrono::{DateTime, Utc, Duration};
-use pgp::composed::signed_key::SignedSecretKey;
+use pgp::composed::signed_key::{SignedSecretKey, SignedPublicKey};
 use pgp::composed::{key::SecretKeyParamsBuilder, KeyDetails, KeyType, SecretKey, SecretSubkey};
 use pgp::crypto::{hash::HashAlgorithm, sym::SymmetricKeyAlgorithm};
 use pgp::packet::SignatureConfig;
@@ -90,6 +90,7 @@ fn validate_utc_time(expire: &str) -> std::result::Result<(), ValidationError> {
 
 pub struct OpenPGPPlugin {
     secret_key: SignedSecretKey,
+    public_key: SignedPublicKey,
     identity: String,
 }
 
@@ -106,11 +107,15 @@ impl OpenPGPPlugin {
 
 impl SignPlugins for OpenPGPPlugin {
     fn new(db: &DataKey) -> Result<Self> {
-        let value = from_utf8(&db.private_key.unsecure()).map_err(|e| Error::KeyParseError(e.to_string()))?;
+        let private = from_utf8(&db.private_key.unsecure()).map_err(|e| Error::KeyParseError(e.to_string()))?;
         let (secret_key, _) =
-            SignedSecretKey::from_string(value).map_err(|e| Error::KeyParseError(e.to_string()))?;
+            SignedSecretKey::from_string(private).map_err(|e| Error::KeyParseError(e.to_string()))?;
+        let public = from_utf8(&db.public_key.unsecure()).map_err(|e| Error::KeyParseError(e.to_string()))?;
+        let (public_key, _) =
+            SignedPublicKey::from_string(public).map_err(|e| Error::KeyParseError(e.to_string()))?;
         Ok(Self {
             secret_key,
+            public_key,
             identity: db.get_identity(),
         })
     }
@@ -160,8 +165,7 @@ impl SignPlugins for OpenPGPPlugin {
         let sig_cfg = SignatureConfig {
             version: SignatureVersion::V4,
             typ: SignatureType::Binary,
-            //todo update the pub alg and hash alg to the corresponding algorithm to data key
-            pub_alg: ::pgp::crypto::public_key::PublicKeyAlgorithm::RSA,
+            pub_alg: self.public_key.primary_key.algorithm(),
             hash_alg: HashAlgorithm::SHA2_256,
             issuer: Some(self.secret_key.key_id()),
             created: Some(now),

@@ -1,7 +1,7 @@
 use crate::infra::cipher::engine::EncryptionEngine;
 use crate::infra::kms::kms_provider::KMSProvider;
 use crate::model::clusterkey::entity::ClusterKey;
-use crate::model::datakey::entity::DataKey;
+use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::entity::KeyType;
 use crate::model::datakey::traits::ExtendableAttributes;
 use crate::util::error::Result;
@@ -30,6 +30,8 @@ pub(super) struct DataKeyDTO {
     pub certificate: String,
     pub create_at: DateTime<Utc>,
     pub expire_at: DateTime<Utc>,
+    pub soft_delete: bool,
+    pub key_state: String
 }
 
 impl DataKeyDTO {
@@ -62,6 +64,8 @@ impl DataKeyDTO {
             ),
             create_at: data_key.create_at,
             expire_at: data_key.expire_at,
+            soft_delete: data_key.soft_delete,
+            key_state: data_key.key_state.to_string(),
         })
     }
 
@@ -88,6 +92,8 @@ impl DataKeyDTO {
                 .await?),
             create_at: self.create_at,
             expire_at: self.expire_at,
+            soft_delete: self.soft_delete,
+            key_state: KeyState::from_str(&self.key_state)?,
         })
     }
 }

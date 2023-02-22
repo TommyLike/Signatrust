@@ -25,7 +25,7 @@ impl SignerContainer {
         if let Some(signer) = self.containers.read().await.get(&identity) {
             return Ok(signer.clone())
         }
-        let datakey = self.repository.get_by_type_and_name(key_type, key_name).await?;
+        let datakey = self.repository.get_enabled_key_by_type_and_name(key_type, key_name).await?;
         let new = Signers::load_from_data_key(&datakey)?;
         self.containers.write().await.insert(identity, new.clone());
         Ok(new)

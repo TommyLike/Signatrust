@@ -3,7 +3,7 @@ use crate::infra::cipher::algorithm::traits::Algorithm;
 use crate::infra::cipher::engine::EncryptionEngine;
 use crate::infra::database::pool::DbPool;
 use crate::infra::kms::kms_provider::KMSProvider;
-use crate::model::datakey::entity::DataKey;
+use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::repository::Repository;
 use crate::util::error::{Error, Result};
 use async_trait::async_trait;
@@ -30,7 +30,7 @@ impl EncryptedDataKeyRepository {
 impl Repository for EncryptedDataKeyRepository {
     async fn create(&self, data_key: &DataKey) -> Result<DataKey> {
         let dto = DataKeyDTO::encrypt(data_key, self.encryption_engine.clone()).await?;
-        let record : u64 = sqlx::query("INSERT INTO data_key(name, description, user, email, attributes, key_type, private_key, public_key, certificate, create_at, expire_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        let record : u64 = sqlx::query("INSERT INTO data_key(name, description, user, email, attributes, key_type, private_key, public_key, certificate, create_at, expire_at, key_state, soft_delete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             .bind(&dto.name)
             .bind(&dto.description)
             .bind(&dto.user)
@@ -42,13 +42,16 @@ impl Repository for EncryptedDataKeyRepository {
             .bind(dto.certificate)
             .bind(dto.create_at)
             .bind(dto.expire_at)
+            .bind(dto.key_state)
+            .bind(dto.soft_delete)
             .execute(&self.db_pool)
             .await?.last_insert_id();
         return self.get_by_id(record as i32).await
     }
 
     async fn get_all(&self) -> Result<Vec<DataKey>> {
-        let dtos: Vec<DataKeyDTO> = sqlx::query_as("SELECT * FROM data_key")
+        let dtos: Vec<DataKeyDTO> = sqlx::query_as("SELECT * FROM data_key WHERE soft_delete = ?")
+            .bind(false)
             .fetch_all(&self.db_pool)
             .await?;
         let mut results = vec![];
@@ -59,24 +62,39 @@ impl Repository for EncryptedDataKeyRepository {
     }
 
     async fn get_by_id(&self, id: i32) -> Result<DataKey> {
-        let dto: DataKeyDTO = sqlx::query_as("SELECT * FROM data_key WHERE id = ?")
+        let dto: DataKeyDTO = sqlx::query_as("SELECT * FROM data_key WHERE id = ? AND soft_delete = ?")
             .bind(id)
+            .bind(false)
             .fetch_one(&self.db_pool)
             .await?;
         Ok(dto.decrypt(self.encryption_engine.clone()).await?)
     }
 
-    async fn get_by_type_and_name(&self, key_type: String, name: String) -> Result<DataKey> {
-        let dto: DataKeyDTO = sqlx::query_as("SELECT * FROM data_key WHERE name = ? AND key_type = ?")
+    async fn update_state(&self, id: i32, state: KeyState) -> Result<()> {
+        println!("{} {} {}", id, state.to_string(), "123");
+        let _: Option<DataKeyDTO>  = sqlx::query_as("UPDATE data_key SET key_state = ? WHERE id = ? AND soft_delete = ?")
+            .bind(state.to_string())
+            .bind(id)
+            .bind(false)
+            .fetch_optional(&self.db_pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn get_enabled_key_by_type_and_name(&self, key_type: String, name: String) -> Result<DataKey> {
+        let dto: DataKeyDTO = sqlx::query_as("SELECT * FROM data_key WHERE name = ? AND key_type = ? AND key_state = ? AND soft_delete = ?")
             .bind(name)
             .bind(key_type)
+            .bind(KeyState::Enabled.to_string())
+            .bind(false)
             .fetch_one(&self.db_pool)
             .await?;
         Ok(dto.decrypt(self.encryption_engine.clone()).await?)
     }
 
     async fn delete_by_id(&self, id: i32) -> Result<()> {
-        let _: Option<DataKeyDTO> = sqlx::query_as("DELETE FROM data_key WHERE id = ?")
+        let _: Option<DataKeyDTO> = sqlx::query_as("UPDATE data_key SET soft_delete = ? WHERE id = ?")
+            .bind(true)
             .bind(id)
             .fetch_optional(&self.db_pool)
             .await?;

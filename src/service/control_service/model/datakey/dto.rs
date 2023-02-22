@@ -1,7 +1,7 @@
 use crate::infra::cipher::engine::EncryptionEngine;
 use crate::infra::kms::kms_provider::KMSProvider;
 use crate::model::clusterkey::entity::ClusterKey;
-use crate::model::datakey::entity::DataKey;
+use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::entity::KeyType;
 use crate::model::datakey::traits::ExtendableAttributes;
 use crate::util::error::Result;
@@ -56,6 +56,8 @@ pub struct DataKeyDTO {
     pub create_at: String,
     #[validate(custom = "validate_utc_time")]
     pub expire_at: String,
+    #[serde(skip_deserializing)]
+    pub key_state: String,
 }
 
 fn validate_utc_time(expire: &str) -> std::result::Result<(), ValidationError> {
@@ -88,6 +90,8 @@ impl TryFrom<DataKeyDTO> for DataKey {
             certificate: SecVec::new(vec![]),
             create_at: dto.create_at.parse()?,
             expire_at: dto.expire_at.parse()?,
+            soft_delete: false,
+            key_state: KeyState::Enabled
         })
     }
 }
@@ -106,6 +110,7 @@ impl TryFrom<DataKey> for DataKeyDTO {
             key_type: dto.key_type.to_string(),
             create_at: dto.create_at.to_string(),
             expire_at: dto.expire_at.to_string(),
+            key_state: dto.key_state.to_string(),
         })
     }
 }

@@ -8,7 +8,7 @@ use crate::service::control_service::model::datakey::dto::{DataKeyDTO, ExportKey
 use crate::util::error::Error;
 use validator::Validate;
 use crate::infra::sign::signers::Signers;
-use crate::model::datakey::entity::DataKey;
+use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::repository::Repository;
 
 async fn create_data_key(repository: web::Data<EncryptedDataKeyRepository>, datakey: web::Json<DataKeyDTO>,) -> Result<impl Responder, Error> {
@@ -19,6 +19,7 @@ async fn create_data_key(repository: web::Data<EncryptedDataKeyRepository>, data
     key.private_key = SecVec::new(private_key);
     key.public_key = SecVec::new(public_key);
     key.certificate = SecVec::new(certificate);
+    key.key_state = KeyState::Enabled;
     Ok(HttpResponse::Created().json(DataKeyDTO::try_from(repository.into_inner().create(&key).await?)?))
 }
 
@@ -47,6 +48,20 @@ async fn export_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: 
     Ok(HttpResponse::Ok().json(exported))
 }
 
+async fn enable_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+    let repo = repository.into_inner();
+    let key = repo.get_by_id(id.parse::<i32>()?).await?;
+    repo.update_state(key.id, KeyState::Enabled).await?;
+    Ok(HttpResponse::Ok())
+}
+
+async fn disable_data_key(repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
+    let repo = repository.into_inner();
+    let key = repo.get_by_id(id.parse::<i32>()?).await?;
+    repo.update_state(key.id, KeyState::Disabled).await?;
+    Ok(HttpResponse::Ok())
+}
+
 async fn import_data_key(repository: web::Data<EncryptedDataKeyRepository>) -> Result<impl Responder, Error> {
     Ok(HttpResponse::Ok())
 }
@@ -63,4 +78,6 @@ pub fn get_scope() -> Scope {
             .route(web::delete().to(delete_data_key)))
         .service( web::resource("/import").route(web::post().to(import_data_key)))
         .service( web::resource("/{id}/export").route(web::post().to(export_data_key)))
+        .service( web::resource("/{id}/enable").route(web::post().to(enable_data_key)))
+        .service( web::resource("/{id}/disable").route(web::post().to(disable_data_key)))
 }

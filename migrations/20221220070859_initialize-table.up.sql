@@ -21,5 +21,7 @@ CREATE TABLE data_key (
      certificate TEXT,
      create_at DATETIME,
      expire_at DATETIME,
+     key_state VARCHAR(10) NOT NULL,
+     soft_delete BOOLEAN NOT NULL default 0,
      PRIMARY KEY(id)
 );

@@ -6,7 +6,36 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use aes_gcm::Key;
 use secstr::*;
+
+#[derive(Debug, Clone)]
+pub enum KeyState {
+    Enabled,
+    Disabled,
+}
+
+impl FromStr for KeyState {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "enabled" => Ok(KeyState::Enabled),
+            "disabled" => Ok(KeyState::Disabled),
+            _ => Err(Error::UnsupportedTypeError(format!("unsupported data key state {}", s))),
+        }
+    }
+}
+
+impl Display for KeyState {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            KeyState::Enabled => write!(f, "enabled"),
+            KeyState::Disabled => write!(f, "disabled"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum KeyType {
     OpenPGP,
@@ -48,6 +77,8 @@ pub struct DataKey {
     pub certificate: SecVec<u8>,
     pub create_at: DateTime<Utc>,
     pub expire_at: DateTime<Utc>,
+    pub soft_delete: bool,
+    pub key_state: KeyState
 }
 
 impl ExtendableAttributes for DataKey {
