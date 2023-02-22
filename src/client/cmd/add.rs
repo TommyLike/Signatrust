@@ -22,9 +22,6 @@ use crate::client::worker::splitter::Splitter;
 use crate::client::worker::traits::SignHandler;
 use std::sync::atomic::{AtomicI32, Ordering};
 
-// consider the memory consumption if number bumped
-const MAX_MESSAGES: usize = 100;
-
 lazy_static! {
     pub static ref FILE_EXTENSION: HashMap<sign_identity::FileType, Vec<&'static str>> = HashMap::from([
         (sign_identity::FileType::RPM, vec!["rpm", "srpm"]),
@@ -69,7 +66,8 @@ pub struct CommandAddHandler {
     signal: Arc<AtomicBool>,
     config:  Arc<RwLock<Config>>,
     detached: bool,
-    skip_signed: bool
+    skip_signed: bool,
+    max_concurrency: usize
 }
 
 impl CommandAddHandler {
@@ -147,7 +145,8 @@ impl SignCommand for CommandAddHandler {
             signal,
             config: config.clone(),
             detached: command.detached,
-            skip_signed: command.skip_signed
+            skip_signed: command.skip_signed,
+            max_concurrency: config.read()?.get_string("max_concurrency")?.parse()?,
         })
     }
 
@@ -174,9 +173,10 @@ impl SignCommand for CommandAddHandler {
             .enable_io()
             .enable_time()
             .build().unwrap();
-        let (sign_s, sign_r) = bounded::<sign_identity::SignIdentity>(MAX_MESSAGES);
-        let (assemble_s, assemble_r) = bounded::<sign_identity::SignIdentity>(MAX_MESSAGES);
-        let (collect_s, collect_r) = bounded::<sign_identity::SignIdentity>(MAX_MESSAGES);
+        let (split_s, split_r) = bounded::<sign_identity::SignIdentity>(self.max_concurrency);
+        let (sign_s, sign_r) = bounded::<sign_identity::SignIdentity>(self.max_concurrency);
+        let (assemble_s, assemble_r) = bounded::<sign_identity::SignIdentity>(self.max_concurrency);
+        let (collect_s, collect_r) = bounded::<sign_identity::SignIdentity>(self.max_concurrency);
         info!("starting to sign {} files", files.len());
         let lb_config = self.config.read()?.get_table("server")?;
         runtime.block_on(async {
@@ -184,14 +184,35 @@ impl SignCommand for CommandAddHandler {
                 &lb_config).await.unwrap().get_channel().unwrap();
             let mut signer = RemoteSigner::new(channel, self.buffer_size);
             //split file
-            let split_handlers = files.into_iter().map(|file|{
-                let task_sign_s = sign_s.clone();
+            let send_handlers = files.into_iter().map(|file|{
+                let task_split_s = split_s.clone();
                 tokio::spawn(async move {
-                    info!("starting to sign file: {}", file.file_path.as_path().display());
-                    let mut splitter = Splitter::new();
-                    splitter.handle(file, task_sign_s).await;
+                    let file_name = format!("{}", file.file_path.as_path().display());
+                    if let Err(err) = task_split_s.send(file).await {
+                        error!("failed to send file for splitting: {}", err);
+                    } else {
+                        info!("starting to split file: {}", file_name);
+                    }
+
                 })
             }).collect::<Vec<_>>();
+            //do file split
+            let task_sign_s = sign_s.clone();
+            let split_handler = tokio::spawn(async move {
+                loop {
+                    let sign_identity = split_r.recv().await;
+                    match sign_identity {
+                        Ok(identity) => {
+                            let mut splitter = Splitter::new();
+                            splitter.handle(identity, task_sign_s.clone()).await;
+                        },
+                        Err(_) => {
+                            info!("split channel closed");
+                            return
+                        }
+                    }
+                }
+            });
             //do remote sign
             let task_assemble_s = assemble_s.clone();
             let sign_handler = tokio::spawn(async move {
@@ -252,16 +273,18 @@ impl SignCommand for CommandAddHandler {
                 }
             });
             // wait for finish
-            for h in split_handlers {
+            for h in send_handlers {
                 h.await.unwrap();
             }
+            drop(split_s);
+            split_handler.await.expect("split worker finished correctly");
             drop(sign_s);
             sign_handler.await.expect("sign worker finished correctly");
             drop(assemble_s);
             assemble_handler.await.expect("assemble worker finished correctly");
             drop(collect_s);
             collect_handler.await.expect("collect worker finished correctly");
-            info!("[Summary]: Successfully signed {} files failed {} files",
+            info!("Successfully signed {} files failed {} files",
                 succeed_files.load(Ordering::Relaxed), failed_files.load(Ordering::Relaxed));
             info!("sign files process finished");
         });
