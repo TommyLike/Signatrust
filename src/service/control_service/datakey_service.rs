@@ -40,8 +40,9 @@ async fn show_data_key(_user: UserIdentity, repository: web::Data<EncryptedDataK
 }
 
 async fn delete_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, id: web::Path<String>) -> Result<impl Responder, Error> {
-    info!("user {0} delete a key {1}", user.email, id);
-    repository.into_inner().delete_by_id(id.parse::<i32>()?).await?;
+    let repo = repository.into_inner();
+    let key = repo.get_by_id(id.parse::<i32>()?).await?;
+    repo.delete_by_id(id.parse::<i32>()?).await?;
     Ok(HttpResponse::Ok())
 }
 
