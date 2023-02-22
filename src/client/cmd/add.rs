@@ -20,8 +20,10 @@ use crate::client::worker::assembler::Assembler;
 use crate::client::worker::signer::RemoteSigner;
 use crate::client::worker::splitter::Splitter;
 use crate::client::worker::traits::SignHandler;
+use std::sync::atomic::{AtomicI32, Ordering};
 
-const MAX_MESSAGES: usize = 1000;
+// consider the memory consumption if number bumped
+const MAX_MESSAGES: usize = 100;
 
 lazy_static! {
     pub static ref FILE_EXTENSION: HashMap<sign_identity::FileType, Vec<&'static str>> = HashMap::from([
@@ -165,6 +167,8 @@ impl SignCommand for CommandAddHandler {
     //  fetcher-----------splitter * N----------remote signer * N---------------assembler * N--------------collector * N
     fn handle(&self) -> Result<()> {
         let files = self.collect_file_candidates()?;
+        let succeed_files = Arc::new(AtomicI32::new(0));
+        let failed_files = Arc::new(AtomicI32::new(0));
         let runtime = runtime::Builder::new_multi_thread()
             .worker_threads(self.worker_threads)
             .enable_io()
@@ -223,6 +227,8 @@ impl SignCommand for CommandAddHandler {
                 }
             });
             // collect result
+            let succeed_files_c = succeed_files.clone();
+            let failed_files_c = failed_files.clone();
             let collect_handler = tokio::spawn(async move {
                 loop {
                     let sign_identity = collect_r.recv().await;
@@ -231,9 +237,11 @@ impl SignCommand for CommandAddHandler {
                             if identity.error.borrow().clone().is_err() {
                                 error!("failed to sign file {} due to error {:?}",
                                     identity.file_path.as_path().display(),
-                                    identity.error.borrow().clone().err())
+                                    identity.error.borrow().clone().err());
+                                failed_files_c.fetch_add( 1, Ordering::SeqCst);
                             } else {
-                                info!("successfully signed file {}", identity.file_path.as_path().display())
+                                info!("successfully signed file {}", identity.file_path.as_path().display());
+                                succeed_files_c.fetch_add( 1, Ordering::SeqCst);
                             }
                         },
                         Err(_) => {
@@ -253,6 +261,8 @@ impl SignCommand for CommandAddHandler {
             assemble_handler.await.expect("assemble worker finished correctly");
             drop(collect_s);
             collect_handler.await.expect("collect worker finished correctly");
+            info!("[Summary]: Successfully signed {} files failed {} files",
+                succeed_files.load(Ordering::Relaxed), failed_files.load(Ordering::Relaxed));
             info!("sign files process finished");
         });
         Ok(())

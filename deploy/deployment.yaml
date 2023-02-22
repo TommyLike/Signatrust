@@ -1,6 +1,53 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: signatrust-control-server
+  namespace: signatrust
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: signatrust-control-server
+  template:
+    metadata:
+      labels:
+        component: signatrust-control-server
+    spec:
+      initContainers:
+        - name: init-mysql
+          image: busybox:1.28
+          command: [ "sh", "-c", "until nslookup signatrust-database.signatrust.svc.cluster.local; do echo waiting for mysql service ; sleep 2; done;" ]
+      containers:
+        - image: tommylike/signatrust-control-server:cc73e716d8a680301131788a3b8c4f6ef98b2e74
+          imagePullPolicy: Always
+          name: signatrust-server
+          command: ["/app/control-server"]
+          resources:
+            requests:
+              cpu: 8000m
+              memory: 8000Mi
+            limits:
+              cpu: 8000m
+              memory: 8000Mi
+          ports:
+            - containerPort: 8088
+              name: http
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: info
+          volumeMounts:
+            - mountPath: /app/config/server.toml
+              name: config-volume
+              subPath: server.toml
+      volumes:
+        - name: config-volume
+          configMap:
+            name: signatrust-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: signatrust-server
 spec:
   replicas: 2

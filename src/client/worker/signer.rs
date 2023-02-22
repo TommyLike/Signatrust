@@ -73,6 +73,8 @@ impl SignHandler for RemoteSigner {
         }
         debug!("successfully sign file {}", item.file_path.as_path().display());
         *item.signature.borrow_mut() = signed_content;
+        //clear out temporary value
+        *item.raw_content.borrow_mut() = Vec::new();
         item
     }
 }

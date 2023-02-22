@@ -43,14 +43,14 @@ impl SignHandler for Assembler {
                         debug!("successfully saved file {}", item.file_path.as_path().display());
                     }
                     Err(err) => {
-                        *item.error.borrow_mut() = Err(Error::AssembleFileError(format!("{:?}", err)))
+                        *item.error.borrow_mut() = Err(Error::AssembleFileError(format!("{:?}", err)));
                     }
                 }
                 //remove temp file when finished
                 let _ = fs::remove_file(temp_file);
             }
             Err(err) => {
-                *item.error.borrow_mut() = Err(Error::AssembleFileError(format!("{:?}", err)))
+                *item.error.borrow_mut() = Err(Error::AssembleFileError(format!("{:?}", err)));
             }
         }
         item

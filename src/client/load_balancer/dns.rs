@@ -36,6 +36,7 @@ impl DynamicLoadBalancer for DNSLoadBalancer {
             if let Some(tls_config) = self.client_config.clone() {
                 endpoint = endpoint.tls_config(tls_config)?;
             }
+            info!("found endpoint {}:{} for signing task.", ip, self.port);
             endpoints.push(endpoint);
         }
         Ok(Channel::balance_list(endpoints.into_iter()))
