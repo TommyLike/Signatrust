@@ -15,6 +15,12 @@ pub enum KeyState {
     Disabled,
 }
 
+impl Default for KeyState {
+    fn default() -> Self {
+        KeyState::Disabled
+    }
+}
+
 impl FromStr for KeyState {
     type Err = Error;
 

@@ -93,7 +93,7 @@ impl TryFrom<DataKeyDTO> for DataKey {
             create_at: dto.create_at.parse()?,
             expire_at: dto.expire_at.parse()?,
             soft_delete: false,
-            key_state: KeyState::Enabled
+            key_state: KeyState::default()
         })
     }
 }

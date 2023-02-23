@@ -21,7 +21,6 @@ async fn create_data_key(_user: UserIdentity, repository: web::Data<EncryptedDat
     key.private_key = SecVec::new(private_key);
     key.public_key = SecVec::new(public_key);
     key.certificate = SecVec::new(certificate);
-    key.key_state = KeyState::Enabled;
     Ok(HttpResponse::Created().json(DataKeyDTO::try_from(repository.into_inner().create(&key).await?)?))
 }
 
