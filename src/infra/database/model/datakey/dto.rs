@@ -1,6 +1,6 @@
 use crate::infra::cipher::engine::EncryptionEngine;
 use crate::infra::kms::kms_provider::KMSProvider;
-use crate::model::clusterkey::entity::ClusterKey;
+
 use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::entity::KeyType;
 use crate::model::datakey::traits::ExtendableAttributes;

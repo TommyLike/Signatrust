@@ -67,7 +67,7 @@ async fn disable_data_key(_user: UserIdentity, repository: web::Data<EncryptedDa
     Ok(HttpResponse::Ok())
 }
 
-async fn import_data_key(_user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>) -> Result<impl Responder, Error> {
+async fn import_data_key(_user: UserIdentity, _repository: web::Data<EncryptedDataKeyRepository>) -> Result<impl Responder, Error> {
     Ok(HttpResponse::Ok())
 }
 

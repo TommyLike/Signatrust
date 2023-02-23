@@ -1,10 +1,9 @@
 
 
 
-use crate::model::datakey::entity::DataKey;
-use crate::infra::cipher::engine::EncryptionEngine;
-use crate::infra::kms::kms_provider::KMSProvider;
-use crate::model::clusterkey::entity::ClusterKey;
+
+
+
 use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::entity::KeyType;
 
@@ -70,25 +69,6 @@ fn validate_utc_time(expire: &str) -> std::result::Result<(), ValidationError> {
     }
     Ok(())
 }
-
-impl TryFrom<DataKey> for DataKeyDTO {
-    type Error = Error;
-
-    fn try_from(dto: DataKey) -> Result<Self> {
-        Ok(DataKeyDTO {
-            id: dto.id,
-            name: dto.name,
-            description: dto.description,
-            user: dto.user,
-            email: dto.email,
-            attributes: dto.attributes,
-            key_type: dto.key_type.to_string(),
-            create_at: dto.create_at.to_string(),
-            expire_at: dto.expire_at.to_string(),
-        })
-    }
-}
-
 
 impl TryFrom<DataKeyDTO> for DataKey {
     type Error = Error;
