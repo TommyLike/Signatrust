@@ -9,7 +9,7 @@ tls_cert = "/Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/cli
 tls_key = "/Users/tommylike/Work/codes/rust-projects/signatrust/.data/certs/client/server.key"
 type = "single"
 server_address = "0.0.0.0"
-server_port = "8080"
+server_port = "8088"
 # ==========================================================================================
 # type dns used for client round robin when multiple ip addresses are bound to single domain
 #type = "dns"

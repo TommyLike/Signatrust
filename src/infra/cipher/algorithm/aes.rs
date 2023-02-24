@@ -2,7 +2,7 @@ use crate::infra::cipher::algorithm::traits::{Algorithm, Encryptor};
 use crate::util::error::Error;
 use aes_gcm_siv::{
     aead::{Aead, KeyInit, OsRng},
-    Aes256GcmSiv, Nonce,
+    Aes256GcmSiv,
 };
 use generic_array::GenericArray;
 use rand::{thread_rng, Rng};

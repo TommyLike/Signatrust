@@ -1,15 +1,15 @@
 use super::dto::DataKeyDTO;
-use crate::infra::cipher::algorithm::traits::Algorithm;
+
 use crate::infra::cipher::engine::EncryptionEngine;
 use crate::infra::database::pool::DbPool;
-use crate::infra::kms::kms_provider::KMSProvider;
+
 use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::repository::Repository;
-use crate::util::error::{Error, Result};
+use crate::util::error::{Result};
 use async_trait::async_trait;
 use std::boxed::Box;
 use std::sync::Arc;
-use actix_web::web::Data;
+
 
 #[derive(Clone)]
 pub struct EncryptedDataKeyRepository {
@@ -29,7 +29,7 @@ impl EncryptedDataKeyRepository {
 #[async_trait]
 impl Repository for EncryptedDataKeyRepository {
     async fn create(&self, data_key: &DataKey) -> Result<DataKey> {
-        let dto = DataKeyDTO::encrypt(data_key, self.encryption_engine.clone()).await?;
+        let dto = DataKeyDTO::encrypt(data_key, &self.encryption_engine).await?;
         let record : u64 = sqlx::query("INSERT INTO data_key(name, description, user, email, attributes, key_type, private_key, public_key, certificate, create_at, expire_at, key_state, soft_delete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             .bind(&dto.name)
             .bind(&dto.description)
@@ -56,7 +56,7 @@ impl Repository for EncryptedDataKeyRepository {
             .await?;
         let mut results = vec![];
         for dto in dtos.into_iter() {
-            results.push(dto.decrypt(self.encryption_engine.clone()).await?);
+            results.push(dto.decrypt(&self.encryption_engine).await?);
         }
         Ok(results)
     }
@@ -67,7 +67,7 @@ impl Repository for EncryptedDataKeyRepository {
             .bind(false)
             .fetch_one(&self.db_pool)
             .await?;
-        Ok(dto.decrypt(self.encryption_engine.clone()).await?)
+        Ok(dto.decrypt(&self.encryption_engine).await?)
     }
 
     async fn update_state(&self, id: i32, state: KeyState) -> Result<()> {
@@ -89,7 +89,7 @@ impl Repository for EncryptedDataKeyRepository {
             .bind(false)
             .fetch_one(&self.db_pool)
             .await?;
-        Ok(dto.decrypt(self.encryption_engine.clone()).await?)
+        Ok(dto.decrypt(&self.encryption_engine).await?)
     }
 
     async fn delete_by_id(&self, id: i32) -> Result<()> {

@@ -1,20 +1,20 @@
 use std::borrow::Borrow;
-use clap::{Args, Subcommand, ValueEnum};
+use clap::{Args};
 use crate::util::error::Result;
-use config::{Config, File};
+use config::{Config};
 use std::sync::{Arc, atomic::AtomicBool, RwLock};
 use super::traits::SignCommand;
 use std::path::PathBuf;
 use tokio::runtime;
 use crate::client::sign_identity;
 use std::collections::HashMap;
-use std::fmt::{Display, format, Formatter, Result as fmtResult, write};
+
 use crate::util::error;
-use async_channel::{bounded, RecvError};
-use tokio::io::split;
+use async_channel::{bounded};
+
 use crate::client::cmd::options;
 use crate::client::file_handler::factory::FileHandlerFactory;
-use crate::client::load_balancer::{traits::DynamicLoadBalancer, single::SingleLoadBalancer};
+
 use crate::client::load_balancer::factory::ChannelFactory;
 use crate::client::worker::assembler::Assembler;
 use crate::client::worker::signer::RemoteSigner;
@@ -105,11 +105,9 @@ impl CommandAddHandler {
                 }
             }
             return Ok(container);
-        } else {
-            if self.file_candidates(self.path.extension().unwrap().to_str().unwrap())? {
+        } else if self.file_candidates(self.path.extension().unwrap().to_str().unwrap())? {
                 return Ok(vec![sign_identity::SignIdentity::new(
                     self.file_type.clone(), self.path.clone(), self.key_type.clone(), self.key_id.clone(), self.get_sign_options())]);
-            }
         }
         return Err(error::Error::NoFileCandidateError);
     }
@@ -151,7 +149,7 @@ impl SignCommand for CommandAddHandler {
     }
 
     fn validate(&self) -> Result<()> {
-        FileHandlerFactory::get_handler(self.file_type.clone()).validate_options(&self.get_sign_options())
+        FileHandlerFactory::get_handler(&self.file_type).validate_options(&self.get_sign_options())
     }
 
     //Signing process are described below.

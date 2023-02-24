@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use crate::client::sign_identity::{FileType, SignIdentity};
-use async_channel::{Sender, SendError};
+use crate::client::sign_identity::{SignIdentity};
+use async_channel::{Sender};
 use crate::client::file_handler::factory::FileHandlerFactory;
 use crate::client::file_handler::traits::FileHandler;
 
@@ -12,7 +12,7 @@ pub trait SignHandler {
                 error!("failed to send sign object into channel: {}", err);
             }
         } else {
-            let handler = FileHandlerFactory::get_handler(item.file_type.clone());
+            let handler = FileHandlerFactory::get_handler(&item.file_type);
             let updated = self.process(handler, item).await;
             if let Err(err) = sender.send(updated).await {
                 error!("failed to send sign object into channel: {}", err);

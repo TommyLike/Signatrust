@@ -1,17 +1,17 @@
-use std::ffi::OsStr;
-use crate::client::{file_handler, sign_identity::SignIdentity};
-use crate::util::error::Result;
-use async_channel::Sender;
+
+use crate::client::{sign_identity::SignIdentity};
+
+
 use crate::client::worker::traits::SignHandler;
 use crate::client::file_handler::traits::FileHandler;
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 use std::fs::rename;
 use crate::util::error::Error;
-use std::cell::RefCell;
-use std::collections::HashMap;
+
+
 use std::fs;
-use clap::builder::Str;
+
 
 pub struct Assembler {
     temp_dir: PathBuf

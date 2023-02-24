@@ -1,12 +1,12 @@
-use tonic::transport::{Channel, Certificate, ClientTlsConfig, Identity};
+use tonic::transport::{Channel, ClientTlsConfig};
 use super::traits::DynamicLoadBalancer;
-use tokio::time::{sleep, Duration};
+
 use crate::util::error::Result;
 use tonic::transport::Endpoint;
 use async_trait::async_trait;
-use tokio::fs;
-use std::net::IpAddr;
-use dns_lookup::{lookup_host, lookup_addr};
+
+
+use dns_lookup::{lookup_host};
 
 pub struct DNSLoadBalancer {
     hostname: String,

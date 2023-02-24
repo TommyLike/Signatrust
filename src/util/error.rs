@@ -19,6 +19,10 @@ use actix_web::{ResponseError, HttpResponse};
 use validator::ValidationErrors;
 use serde::{Deserialize, Serialize};
 use openssl::error::ErrorStack;
+use actix_web::cookie::KeyError;
+use openidconnect::url::ParseError as OIDCParseError;
+use openidconnect::ConfigurationError;
+use openidconnect::UserInfoError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -57,6 +61,12 @@ pub enum Error {
     ParameterError(String),
     #[error("record not found error")]
     NotFoundError,
+    #[error("invalid user")]
+    UnauthorizedError,
+    #[error("invalid cookie key found")]
+    InvalidCookieKeyError,
+    #[error("failed to perform auth operation: {0}")]
+    AuthError(String),
 
     //client error
     #[error("file type not supported {0}")]
@@ -96,6 +106,12 @@ impl ResponseError for Error {
             Error::NotFoundError => {
                 warn!("record not found error: {}", self.to_string());
                 HttpResponse::NotFound().json(ErrorMessage{
+                    detail: self.to_string()
+                })
+            }
+            Error::UnauthorizedError => {
+                warn!("authorized: {}", self.to_string());
+                HttpResponse::Unauthorized().json(ErrorMessage{
                     detail: self.to_string()
                 })
             }
@@ -249,5 +265,30 @@ impl From<ErrorStack> for Error {
         Error::X509InvokeError(format!("{:?}", err.errors()))
     }
 }
+
+impl From<KeyError> for Error {
+    fn from(_: KeyError) -> Self {
+        Error::InvalidCookieKeyError
+    }
+}
+
+impl From<OIDCParseError> for Error {
+    fn from(err: OIDCParseError) -> Self {
+        Error::ConfigError(err.to_string())
+    }
+}
+
+impl From<ConfigurationError> for Error {
+    fn from(err: ConfigurationError) -> Self {
+        Error::AuthError(err.to_string())
+    }
+}
+
+impl From<UserInfoError<openidconnect::reqwest::Error<reqwest::Error>>> for Error {
+    fn from(err: UserInfoError<openidconnect::reqwest::Error<reqwest::Error>>) -> Self {
+    Error::AuthError(err.to_string())
+}
+}
+
 
 

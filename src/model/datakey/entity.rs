@@ -1,12 +1,12 @@
 use crate::model::datakey::traits::{ExtendableAttributes, Identity};
 use crate::util::error::{Error, Result};
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serde_json;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use aes_gcm::Key;
+
 use secstr::*;
 
 #[derive(Debug, Clone)]
