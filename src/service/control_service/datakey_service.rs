@@ -11,9 +11,9 @@ use crate::infra::sign::signers::Signers;
 use crate::model::datakey::entity::{DataKey, KeyState};
 use crate::model::datakey::repository::Repository;
 use super::model::user::dto::UserIdentity;
-use crate::model::datakey::traits::Identity;
 
-async fn create_data_key(user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, datakey: web::Json<DataKeyDTO>,) -> Result<impl Responder, Error> {
+
+async fn create_data_key(_user: UserIdentity, repository: web::Data<EncryptedDataKeyRepository>, datakey: web::Json<DataKeyDTO>,) -> Result<impl Responder, Error> {
     datakey.validate()?;
     let mut key = DataKey::try_from(datakey.0)?;
     let (private_key, public_key, certificate) =
@@ -22,7 +22,6 @@ async fn create_data_key(user: UserIdentity, repository: web::Data<EncryptedData
     key.public_key = SecVec::new(public_key);
     key.certificate = SecVec::new(certificate);
     key.key_state = KeyState::Enabled;
-    info!("user {0} created a key pairs {1}", user.email, key.get_identity());
     Ok(HttpResponse::Created().json(DataKeyDTO::try_from(repository.into_inner().create(&key).await?)?))
 }
 

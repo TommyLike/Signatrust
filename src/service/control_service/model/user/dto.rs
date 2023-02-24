@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UserIdentity {
     pub email: String,
+    pub username: String,
 }
 
 impl FromRequest for UserIdentity {
@@ -15,10 +16,10 @@ impl FromRequest for UserIdentity {
 
     fn from_request(req: &HttpRequest, pl: &mut Payload) -> Self::Future {
         if let Ok(identity) = Identity::from_request(req, pl).into_inner() {
-            if let Ok(email) = identity.id() {
-                return ready(Ok(UserIdentity{
-                    email
-                }));
+            if let Ok(user_json) = identity.id() {
+                if let Ok(user) = serde_json::from_str(&user_json) {
+                    return ready(Ok(user));
+                }
             }
         }
         ready(Err(Error::UnauthorizedError))

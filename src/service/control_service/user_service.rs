@@ -1,26 +1,19 @@
 use actix_web::{HttpResponse, Responder, Result, web, Scope, HttpRequest, HttpMessage};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 use crate::util::error::Error;
 use super::model::user::dto::UserIdentity;
 use actix_identity::Identity;
-use openidconnect::{AdditionalClaims, UserInfoClaims};
+
 use openidconnect::{
     AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce,
-    OAuth2TokenResponse, core::CoreResponseType, core::CoreClient, core::CoreGenderClaim
+    OAuth2TokenResponse, core::CoreResponseType, core::CoreClient
 };
 
+use reqwest::{header, Client};
 use openidconnect::Scope as OIDCScore;
 use openidconnect::reqwest::async_http_client;
-
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct EmailClaims {
-    pub email: String
-}
-
-impl AdditionalClaims for EmailClaims {}
 
 #[derive(Deserialize)]
 struct Code {
@@ -47,20 +40,40 @@ async fn logout(id: Identity) -> Result<impl Responder, Error> {
     Ok( HttpResponse::NoContent().finish())
 }
 
-async fn callback(req: HttpRequest, client: web::Data<CoreClient>, code: web::Query<Code>) -> Result<impl Responder, Error> {
+async fn callback(req: HttpRequest, client: web::Data<CoreClient>, userinfo_url: web::Data<String>, code: web::Query<Code>) -> Result<impl Responder, Error> {
     match client
         .exchange_code(AuthorizationCode::new(code.code.clone()))
         .request_async(async_http_client).await {
         Ok(token_response) => {
-            let userinfo_claim_result: UserInfoClaims<EmailClaims, CoreGenderClaim> = client
-                .user_info(token_response.access_token().to_owned(), None)?
-                .request_async(async_http_client).await?;
-            Identity::login(&req.extensions(),
-                            userinfo_claim_result.additional_claims().email.clone()).unwrap();
-            Ok(HttpResponse::Found().insert_header(("Location", "/")).finish())
+            let userinfo = get_user_info(&userinfo_url, token_response.access_token().secret()).await?;
+            match Identity::login(&req.extensions(), serde_json::to_string(&userinfo)?) {
+                Ok(_) => {
+                    Ok(HttpResponse::Found().insert_header(("Location", "/")).finish())
+                }
+                Err(err) => {
+                    Err(Error::AuthError(format!("failed to get oidc token {}", err.to_string())))
+                }
+            }
+
         }
         Err(err) => {
-            Err(Error::AuthError(format!("failed to get oidc token {}", err)))
+            Err(Error::AuthError(format!("failed to get oidc token {}", err.to_string())))
+        }
+    }
+}
+
+// NOTE: openidconnect can't handle the case when null is returned in the userinfo, we have to handle it this way.
+// https://github.com/ramosbugs/openidconnect-rs/issues/100
+async fn get_user_info(userinfo_url: &str, access_token: &str) -> Result<UserIdentity, Error> {
+    let mut auth_header = header::HeaderMap::new();
+    auth_header.insert("Authorization", header::HeaderValue::from_str( access_token)?);
+    match Client::builder().default_headers(auth_header).build() {
+        Ok(client) => {
+            let resp: UserIdentity = client.get(userinfo_url).send().await?.json().await?;
+            Ok(resp)
+        }
+        Err(err) => {
+            Err(Error::AuthError(err.to_string()))
         }
     }
 }

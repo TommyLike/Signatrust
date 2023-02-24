@@ -48,7 +48,7 @@ pub struct DataKeyDTO {
     pub id: i32,
     #[validate(length(min = 4, max = 20))]
     pub name: String,
-    #[serde(skip_deserializing)]
+    #[validate(email)]
     pub email: String,
     #[validate(length(min = 0, max = 100))]
     pub description: String,

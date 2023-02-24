@@ -96,6 +96,8 @@ impl ControlServer {
 
         //initialize oidc client
         let client = web::Data::new(self.initialize_oidc_client()?);
+        //TODO: remove me when openid connect library is ready
+        let user_info_url = web::Data::new(self.server_config.read()?.get_string("oidc.userinfo_url")?);
 
         info!("control server starts");
         // Start http server
@@ -105,6 +107,7 @@ impl ControlServer {
                 // enable logger
                 .app_data(data_key_repository.clone())
                 .app_data(client.clone())
+                .app_data(user_info_url.clone())
                 .wrap(middleware::Logger::default())
                 .wrap(IdentityMiddleware::default())
                 .wrap(
