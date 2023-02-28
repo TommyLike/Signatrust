@@ -11,13 +11,25 @@ use openidconnect::{
     OAuth2TokenResponse, core::CoreResponseType, core::CoreClient
 };
 
+use crate::model::user::repository::Repository as userRepository;
 use reqwest::{header, Client};
 use openidconnect::Scope as OIDCScore;
 use openidconnect::reqwest::async_http_client;
+use crate::infra::database::model::token::repository::TokenRepository;
+use crate::infra::database::model::user::repository::UserRepository;
+use crate::model::token::entity::Token;
+use crate::model::token::repository::Repository as tokenRepository;
+use crate::model::user::entity::User;
+use crate::service::control_service::model::token::dto::TokenDTO;
 
 #[derive(Deserialize)]
 struct Code {
     pub code: String,
+}
+
+#[derive(Deserialize)]
+pub struct UserEmail {
+    pub email: String,
 }
 
 async fn login(client: web::Data<CoreClient>) -> Result<impl Responder, Error> {
@@ -40,13 +52,14 @@ async fn logout(id: Identity) -> Result<impl Responder, Error> {
     Ok( HttpResponse::NoContent().finish())
 }
 
-async fn callback(req: HttpRequest, client: web::Data<CoreClient>, userinfo_url: web::Data<String>, code: web::Query<Code>) -> Result<impl Responder, Error> {
+async fn callback(req: HttpRequest, client: web::Data<CoreClient>, user_repo: web::Data<UserRepository>, userinfo_url: web::Data<String>, code: web::Query<Code>) -> Result<impl Responder, Error> {
     match client
         .exchange_code(AuthorizationCode::new(code.code.clone()))
         .request_async(async_http_client).await {
         Ok(token_response) => {
-            let userinfo = get_user_info(&userinfo_url, token_response.access_token().secret()).await?;
-            match Identity::login(&req.extensions(), serde_json::to_string(&userinfo)?) {
+            let id: User = User::new(get_user_info(&userinfo_url, token_response.access_token().secret()).await?.email)?;
+            let user_entity:UserIdentity = UserIdentity::from(user_repo.into_inner().create(&id).await?);
+            match Identity::login(&req.extensions(), serde_json::to_string(&user_entity)?) {
                 Ok(_) => {
                     Ok(HttpResponse::Found().insert_header(("Location", "/")).finish())
                 }
@@ -54,7 +67,6 @@ async fn callback(req: HttpRequest, client: web::Data<CoreClient>, userinfo_url:
                     Err(Error::AuthError(format!("failed to get oidc token {}", err.to_string())))
                 }
             }
-
         }
         Err(err) => {
             Err(Error::AuthError(format!("failed to get oidc token {}", err.to_string())))
@@ -62,14 +74,28 @@ async fn callback(req: HttpRequest, client: web::Data<CoreClient>, userinfo_url:
     }
 }
 
+async fn new_token(user: UserIdentity, token_repo: web::Data<TokenRepository>) -> Result<impl Responder, Error> {
+    let token = token_repo.into_inner().create(&Token::new(user.id)?).await?;
+    Ok(HttpResponse::Ok().json(TokenDTO::from(token)))
+}
+
+async fn list_token(user: UserIdentity, token_repo: web::Data<TokenRepository>) -> Result<impl Responder, Error> {
+    let token = token_repo.into_inner().get_token_by_user_id(user.id).await?;
+    let mut results = vec![];
+    for t in token.into_iter() {
+        results.push(TokenDTO::from(t));
+    }
+    Ok(HttpResponse::Ok().json(results))
+}
+
 // NOTE: openidconnect can't handle the case when null is returned in the userinfo, we have to handle it this way.
 // https://github.com/ramosbugs/openidconnect-rs/issues/100
-async fn get_user_info(userinfo_url: &str, access_token: &str) -> Result<UserIdentity, Error> {
+async fn get_user_info(userinfo_url: &str, access_token: &str) -> Result<UserEmail, Error> {
     let mut auth_header = header::HeaderMap::new();
     auth_header.insert("Authorization", header::HeaderValue::from_str( access_token)?);
     match Client::builder().default_headers(auth_header).build() {
         Ok(client) => {
-            let resp: UserIdentity = client.get(userinfo_url).send().await?.json().await?;
+            let resp: UserEmail = client.get(userinfo_url).send().await?.json().await?;
             Ok(resp)
         }
         Err(err) => {
@@ -86,4 +112,5 @@ pub fn get_scope() -> Scope {
         .service(web::resource("/login").route(web::get().to(login)))
         .service(web::resource("/logout").route(web::post().to(logout)))
         .service(web::resource("/callback").route(web::get().to(callback)))
+        .service(web::resource("/api_keys").route(web::get().to(new_token)).route(web::post().to(list_token)))
 }

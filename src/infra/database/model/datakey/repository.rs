@@ -71,7 +71,6 @@ impl Repository for EncryptedDataKeyRepository {
     }
 
     async fn update_state(&self, id: i32, state: KeyState) -> Result<()> {
-        println!("{} {} {}", id, state.to_string(), "123");
         let _: Option<DataKeyDTO>  = sqlx::query_as("UPDATE data_key SET key_state = ? WHERE id = ? AND soft_delete = ?")
             .bind(state.to_string())
             .bind(id)

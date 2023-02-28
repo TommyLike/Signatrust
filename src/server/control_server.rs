@@ -33,10 +33,14 @@ use openidconnect::core::{
     CoreClient,
 };
 use openidconnect::{JsonWebKeySet, ClientId, AuthUrl, UserInfoUrl, TokenUrl, RedirectUrl, ClientSecret, IssuerUrl};
+use crate::infra::database::model::token::repository::TokenRepository;
+use crate::infra::database::model::user::repository::UserRepository;
 
 pub struct ControlServer {
     server_config: Arc<RwLock<Config>>,
     data_key_repository: web::Data<datakeyRepository::EncryptedDataKeyRepository>,
+    user_repository: web::Data<UserRepository>,
+    token_repository: web::Data<TokenRepository>,
 }
 
 impl ControlServer {
@@ -60,9 +64,15 @@ impl ControlServer {
             get_db_pool()?,
             Arc::new(Box::new(engine)),
         );
+        //initialize user repo
+        let user_repo = UserRepository::new(get_db_pool()?);
+        //initialize user repo
+        let token_repo = TokenRepository::new(get_db_pool()?);
         let server = ControlServer {
             server_config,
             data_key_repository: web::Data::new(data_repository),
+            user_repository: web::Data::new(user_repo),
+            token_repository: web::Data::new(token_repo),
         };
         Ok(server)
     }
@@ -102,12 +112,16 @@ impl ControlServer {
         info!("control server starts");
         // Start http server
         let data_key_repository = self.data_key_repository.clone();
+        let user_repository = self.user_repository.clone();
+        let token_repository = self.token_repository.clone();
         let http_server = HttpServer::new(move || {
             App::new()
                 // enable logger
                 .app_data(data_key_repository.clone())
                 .app_data(client.clone())
                 .app_data(user_info_url.clone())
+                .app_data(user_repository.clone())
+                .app_data(token_repository.clone())
                 .wrap(middleware::Logger::default())
                 .wrap(IdentityMiddleware::default())
                 .wrap(
