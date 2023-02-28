@@ -6,7 +6,7 @@ use crate::client::worker::traits::SignHandler;
 use crate::client::file_handler::traits::FileHandler;
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
-use std::fs::rename;
+use std::fs::copy;
 use crate::util::error::Error;
 
 
@@ -38,7 +38,7 @@ impl SignHandler for Assembler {
             Ok(content) => {
                 debug!("successfully assemble file {}", item.file_path.as_path().display());
                 let temp_file = Path::new(&content.0);
-                match rename(temp_file, Path::new(&content.1)) {
+                match copy(temp_file, Path::new(&content.1)) {
                     Ok(_) => {
                         debug!("successfully saved file {}", item.file_path.as_path().display());
                     }
