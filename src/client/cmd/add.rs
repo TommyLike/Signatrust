@@ -162,7 +162,7 @@ impl SignCommand for CommandAddHandler {
     //7. all of the worker will not *raise* error but record error inside of object
     //            vector                sign_chn                      assemble_chn             collect_chn
     //  fetcher-----------splitter * N----------remote signer * N---------------assembler * N--------------collector * N
-    fn handle(&self) -> Result<()> {
+    fn handle(&self) -> Result<bool> {
         let files = self.collect_file_candidates()?;
         let succeed_files = Arc::new(AtomicI32::new(0));
         let failed_files = Arc::new(AtomicI32::new(0));
@@ -286,6 +286,9 @@ impl SignCommand for CommandAddHandler {
                 succeed_files.load(Ordering::Relaxed), failed_files.load(Ordering::Relaxed));
             info!("sign files process finished");
         });
-        Ok(())
+        if failed_files.load(Ordering::Relaxed) != 0 {
+            return Ok(false)
+        }
+        return Ok(true)
     }
 }

@@ -63,7 +63,7 @@ According to our performance tests, Signatrust outperformed Obs Sign by a signif
 
 ![Performance](./docs/images/sign%20performance.png)
 
-Based on these test results, it appears that Signatrust is a more efficient and effective solution for signing RPM packages.
+Based on these test results, it appears that Signatrust is a more efficient and effective solution for signing RPM packages, it's also worth noting that the performance issue of obs sign is mainly due to the gpg's agent implementation.
 
 # Quick Start Guide
 ## Local development

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use std::env;
-use crate::util::error::Result;
+use crate::util::error::{Result, Error};
 use clap::{Parser, Subcommand};
 use crate::client::cmd::add;
 use config::{Config, File};
@@ -61,8 +61,9 @@ fn main() -> Result<()> {
     //handler and quit
     if let Some(handler) = command {
         handler.validate().expect("failed to validate command option");
-        handler.handle().expect("failed to perform command");
+        if !handler.handle().expect("failed to perform command") {
+            return Err(Error::PartialFailureError)
+        }
     }
-
     Ok(())
 }

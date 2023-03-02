@@ -87,6 +87,8 @@ pub enum Error {
     InvalidArgumentError(String),
     #[error("failed to encode in bincode: {0}")]
     BincodeError(String),
+    #[error("failed to sign some of the files")]
+    PartialFailureError,
 }
 
 #[derive(Deserialize, Serialize)]
