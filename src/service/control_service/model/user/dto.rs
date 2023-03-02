@@ -75,7 +75,7 @@ impl From<UserIdentity> for User {
     fn from(id: UserIdentity) -> Self {
         User {
             id: id.id,
-            email: id.email),
+            email: id.email
         }
     }
 }
