@@ -72,7 +72,7 @@ async fn import_data_key(_user: UserIdentity, _repository: web::Data<EncryptedDa
 
 
 pub fn get_scope() -> Scope {
-    web::scope("/datakeys")
+    web::scope("/keys")
         .service(
             web::resource("/")
                 .route(web::get().to(list_data_key))

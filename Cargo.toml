@@ -63,6 +63,7 @@ actix-session = { version = "0.7.2", features = ["cookie-session"]}
 time = "0.3.17"
 openidconnect = "2.5.0"
 url = "2.3.1"
+futures = "0.3.26"
 
 [build-dependencies]
 tonic-build = "0.8.4"
