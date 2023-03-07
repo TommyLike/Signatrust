@@ -53,6 +53,17 @@ We have observed several projects aiming to address these challenges.
 # System Context
 ![System Context](./docs/images/System%20Context.png)
 # Performance
+According to our performance tests, Signatrust outperformed Obs Sign(with pgp agent backend) by a significant margin in a concurrent test environment:
+
+1. **Server**: Single instance with limited resources of 8 CPUs and 8GB RAM.
+2. **Clients**: 1/2/4 instances, each with limited resources of 8 CPUs and 10GB RAM.
+3. **Task per client**: Signing the entire set of RPM packages in the [openEuler21.09 source](https://archives.openeuler.openatom.cn/openEuler-21.09/source/Packages/), which amounted to 4168 packages and 18GB in total.
+4. **Concurrency per client**: 50.
+5. **NOTE**: obs sign only support sign a single file, in order to support concurrent operations, we wrap the `obs-sign` command with golang `goroutines` or python `multiprocessing`.
+
+![Performance](./docs/images/sign%20performance.png)
+
+Based on these test results, it appears that Signatrust is a more efficient and effective solution for signing RPM packages, it's also worth noting that the performance issue of obs sign is mainly due to the gpg's agent implementation.
 
 # Quick Start Guide
 ## Local development
