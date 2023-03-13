@@ -16,18 +16,18 @@ use crate::infra::database::model::datakey::repository::EncryptedDataKeyReposito
 
 
 use crate::util::error::Result as InnerResult;
-use crate::util::signer_container::SignerContainer;
+use crate::util::signer_container::DataKeyContainer;
 
 pub struct SignService {
     data_key_repository: Arc<EncryptedDataKeyRepository>,
-    container: SignerContainer
+    container: DataKeyContainer
 }
 
 impl SignService {
     pub fn new(data_key_repository: Arc<EncryptedDataKeyRepository>) -> SignService {
         SignService {
             data_key_repository: data_key_repository.clone(),
-            container: SignerContainer::new(data_key_repository),
+            container: DataKeyContainer::new(data_key_repository),
         }
     }
     async fn sign_stream_inner(&self, key_type: String, key_name: String, options: &HashMap<String, String>, data: Vec<u8>) -> InnerResult<Vec<u8>> {

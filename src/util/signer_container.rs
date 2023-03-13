@@ -7,13 +7,13 @@ use crate::infra::database::model::datakey::repository::EncryptedDataKeyReposito
 use crate::model::datakey::repository::Repository;
 use crate::infra::sign::signers::Signers;
 
-pub struct SignerContainer {
+pub struct DataKeyContainer {
     repository: Arc<EncryptedDataKeyRepository>,
     containers: Arc<RwLock<HashMap<String, Arc<Box<dyn SignPlugins>>>>>,
 }
 
-impl SignerContainer {
-    pub fn new(repository: Arc<EncryptedDataKeyRepository>) -> SignerContainer {
+impl DataKeyContainer {
+    pub fn new(repository: Arc<EncryptedDataKeyRepository>) -> DataKeyContainer {
         Self {
             repository,
             containers: Arc::new(RwLock::new(HashMap::new()))
