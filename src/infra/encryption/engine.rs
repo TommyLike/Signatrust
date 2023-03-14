@@ -9,7 +9,7 @@ use config::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use crate::infra::kms::kms_provider::KMSProvider;
-use crate::infra::sign_backend::sec_key::{SecClusterKey, SecKey};
+use crate::infra::sign_backend::sec_key::{SecClusterKey};
 
 pub const KEY_SIZE: usize = 2;
 

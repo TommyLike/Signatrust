@@ -17,7 +17,7 @@ use chrono::{DateTime, Utc};
 
 use std::str::FromStr;
 
-use secstr::*;
+
 use validator::{Validate, ValidationError};
 use std::collections::HashMap;
 use crate::util::error::Error;

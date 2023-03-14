@@ -7,22 +7,22 @@ use super::model::user::dto::UserIdentity;
 use actix_identity::Identity;
 
 use openidconnect::{
-    AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce,
+    AuthenticationFlow, CsrfToken, Nonce,
     OAuth2TokenResponse, core::CoreResponseType, core::CoreClient
 };
 
 use crate::model::user::repository::Repository as userRepository;
 use reqwest::{header, Client};
 use openidconnect::Scope as OIDCScore;
-use openidconnect::reqwest::async_http_client;
+
 use crate::infra::database::model::token::repository::TokenRepository;
 use crate::infra::database::model::user::repository::UserRepository;
 use crate::model::token::entity::Token;
 use crate::model::token::repository::Repository as tokenRepository;
 use crate::model::user::entity::User;
-use config::Config;
-use std::sync::Arc;
-use std::sync::RwLock;
+
+
+
 use crate::server::control_server::OIDCConfig;
 use crate::service::control_service::model::token::dto::TokenDTO;
 

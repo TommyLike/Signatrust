@@ -1,6 +1,6 @@
 use crate::util::error::Result;
 use std::collections::HashMap;
-use crate::model::datakey::entity::KeyType;
+
 use crate::model::datakey::entity::DataKey;
 use async_trait::async_trait;
 

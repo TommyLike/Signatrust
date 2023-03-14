@@ -2,7 +2,7 @@ use std::str::FromStr;
 use crate::infra::sign_backend::traits::SignBackend;
 use crate::util::error::{Result, Error};
 use std::sync::{Arc, RwLock};
-use config::{Config, Value};
+use config::{Config};
 use crate::infra::database::pool::DbPool;
 use crate::infra::sign_backend::memory::engine::MemorySignBackend;
 

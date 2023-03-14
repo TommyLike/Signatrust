@@ -1,13 +1,13 @@
 use std::collections::HashMap;
-use crate::model::datakey::entity::KeyType;
+
 use super::super::traits::SignBackend;
 use std::sync::Arc;
-use config::Value;
+
 use config::Config;
 use std::sync::RwLock;
-use crate::model::clusterkey::repository::Repository as ClusterKeyRepository;
+
 use crate::infra::database::model::clusterkey::repository;
-use crate::infra::database::pool::{DbPool, get_db_pool};
+use crate::infra::database::pool::{DbPool};
 use crate::infra::kms::factory;
 use crate::infra::encryption::engine::{EncryptionEngineWithClusterKey, EncryptionEngine};
 use crate::infra::sign_backend::sec_key::SecKey;
@@ -46,7 +46,7 @@ impl MemorySignBackend {
 
         Ok(MemorySignBackend {
             server_config,
-            engine: Arc::new(Box::new((engine))),
+            engine: Arc::new(Box::new(engine)),
         })
     }
 }

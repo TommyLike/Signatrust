@@ -1,5 +1,5 @@
 use super::traits::SignPlugins;
-use crate::model::datakey::traits::Identity;
+
 use crate::util::error::{Error, Result};
 use chrono::{DateTime, Utc};
 use pgp::composed::signed_key::{SignedSecretKey, SignedPublicKey};

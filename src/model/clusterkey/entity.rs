@@ -3,7 +3,7 @@ use crate::util::error::Result;
 use chrono::{DateTime, Duration, Utc};
 use std::fmt::{Display, Formatter};
 use std::vec::Vec;
-use secstr::*;
+
 #[derive(Debug)]
 pub struct ClusterKey {
     pub id: i32,
