@@ -15,14 +15,13 @@ use tonic::{
 };
 
 
-use crate::infra::cipher::engine::{EncryptionEngine, EncryptionEngineWithClusterKey};
+use crate::infra::encryption::engine::{EncryptionEngine, EncryptionEngineWithClusterKey};
 use crate::infra::database::model::clusterkey::repository;
 use crate::infra::database::model::datakey::repository as datakeyRepository;
 use crate::infra::database::pool::{create_pool, get_db_pool};
 use crate::infra::kms::factory;
-
-
-
+use crate::infra::sign_backend::factory::SignBackendFactory;
+use crate::infra::sign_backend::traits::SignBackend;
 
 
 use crate::service::data_service::grpc_service::get_grpc_service;
@@ -34,36 +33,25 @@ pub struct DataServer {
     signal: Arc<AtomicBool>,
     server_identity: Option<Identity>,
     ca_cert: Option<Certificate>,
-    data_key_repository: Arc<datakeyRepository::EncryptedDataKeyRepository>
+    data_key_repository: Arc<datakeyRepository::DataKeyRepository>,
+    sign_backend: Arc<Box<dyn SignBackend>>
 }
 
 impl DataServer {
     pub async fn new(server_config: Arc<RwLock<Config>>, signal: Arc<AtomicBool>) -> Result<Self> {
-        //initialize database and kms backend
-        let kms_provider = factory::KMSProviderFactory::new_provider(
-            &server_config.read()?.get_table("kms-provider")?,
-        )?;
         let database = server_config.read()?.get_table("database")?;
         create_pool(&database).await?;
-        let repository =
-            repository::EncryptedClusterKeyRepository::new(get_db_pool()?, kms_provider.clone());
-        //initialize signature plugins
-        let engine_config = server_config.read()?.get_table("encryption-engine")?;
-        let mut engine = EncryptionEngineWithClusterKey::new(
-            Arc::new(Box::new(repository.clone())),
-            &engine_config,
-        )?;
-        engine.initialize().await?;
-        let data_repository = datakeyRepository::EncryptedDataKeyRepository::new(
-            get_db_pool()?,
-            Arc::new(Box::new(engine)),
-        );
+        let sign_backend = SignBackendFactory::new_engine(
+            server_config.clone(), get_db_pool()?).await?;
+        let data_repository = datakeyRepository::DataKeyRepository::new(
+            get_db_pool()?);
         let mut server = DataServer {
             server_config,
             signal,
             server_identity: None,
             ca_cert: None,
-            data_key_repository: Arc::new(data_repository)
+            data_key_repository: Arc::new(data_repository),
+            sign_backend: Arc::new(sign_backend)
         };
         server.load().await?;
         Ok(server)
@@ -118,12 +106,12 @@ impl DataServer {
         if let Some(identity) = self.server_identity.clone() {
             server
                 .tls_config(ServerTlsConfig::new().identity(identity).client_ca_root(self.ca_cert.clone().unwrap()))?
-                .add_service(get_grpc_service(self.data_key_repository.clone()))
+                .add_service(get_grpc_service(self.data_key_repository.clone(), self.sign_backend.clone()))
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         } else {
             server
-                .add_service(get_grpc_service(self.data_key_repository.clone()))
+                .add_service(get_grpc_service(self.data_key_repository.clone(), self.sign_backend.clone()))
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         }

@@ -1,5 +1,4 @@
 use super::traits::SignPlugins;
-use crate::model::datakey::entity::DataKey;
 use crate::model::datakey::traits::Identity;
 use crate::util::error::{Error, Result};
 use chrono::{DateTime, Utc};
@@ -23,6 +22,7 @@ use std::str::from_utf8;
 
 use validator::{Validate, ValidationError};
 use pgp::composed::StandaloneSignature;
+use crate::infra::sign_backend::sec_key::SecKey;
 
 const DETACHED_SIGNATURE: &str = "detached";
 
@@ -106,7 +106,7 @@ impl OpenPGPPlugin {
 }
 
 impl SignPlugins for OpenPGPPlugin {
-    fn new(db: &DataKey) -> Result<Self> {
+    fn new(db: &SecKey) -> Result<Self> {
         let private = from_utf8(&db.private_key.unsecure()).map_err(|e| Error::KeyParseError(e.to_string()))?;
         let (secret_key, _) =
             SignedSecretKey::from_string(private).map_err(|e| Error::KeyParseError(e.to_string()))?;
@@ -116,7 +116,7 @@ impl SignPlugins for OpenPGPPlugin {
         Ok(Self {
             secret_key,
             public_key,
-            identity: db.get_identity(),
+            identity: db.identity.clone(),
         })
     }
 

@@ -10,24 +10,22 @@ use std::boxed::Box;
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct EncryptedClusterKeyRepository {
+pub struct ClusterKeyRepository {
     db_pool: DbPool,
-    kms_provider: Arc<Box<dyn KMSProvider>>,
 }
 
-impl EncryptedClusterKeyRepository {
-    pub fn new(db_pool: DbPool, kms_provider: Arc<Box<dyn KMSProvider>>) -> Self {
+impl ClusterKeyRepository {
+    pub fn new(db_pool: DbPool) -> Self {
         Self {
             db_pool,
-            kms_provider,
         }
     }
 }
 
 #[async_trait]
-impl Repository for EncryptedClusterKeyRepository {
-    async fn create(&self, cluster_key: &ClusterKey) -> Result<()> {
-        let dto = ClusterKeyDTO::encrypt(cluster_key, &self.kms_provider).await?;
+impl Repository for ClusterKeyRepository {
+    async fn create(&self, cluster_key: ClusterKey) -> Result<()> {
+        let dto = ClusterKeyDTO::from(cluster_key);
         let _ : Option<ClusterKeyDTO> = sqlx::query_as("INSERT IGNORE INTO cluster_key(data, algorithm, identity, create_at, expire_at) VALUES (?, ?, ?, ?, ?)")
             .bind(&dto.data)
             .bind(&dto.algorithm)
@@ -47,7 +45,7 @@ impl Repository for EncryptedClusterKeyRepository {
         .fetch_optional(&self.db_pool)
         .await?;
         match latest {
-            Some(l) => return Ok(Some(l.decrypt(&self.kms_provider).await?)),
+            Some(l) => return Ok(Some(ClusterKey::from(l))),
             None => Ok(None),
         }
     }
@@ -57,7 +55,7 @@ impl Repository for EncryptedClusterKeyRepository {
             .bind(id)
             .fetch_one(&self.db_pool)
             .await?;
-        Ok(selected.decrypt(&self.kms_provider).await?)
+        Ok(ClusterKey::from(selected))
     }
 
     async fn delete_by_id(&self, id: i32) -> Result<()> {

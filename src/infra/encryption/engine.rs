@@ -1,5 +1,5 @@
-use crate::infra::cipher::algorithm::factory::AlgorithmFactory;
-use crate::infra::cipher::algorithm::traits::Encryptor;
+use crate::infra::encryption::algorithm::factory::AlgorithmFactory;
+use crate::infra::encryption::algorithm::traits::Encryptor;
 use crate::model::clusterkey::entity::ClusterKey;
 use crate::model::clusterkey::repository::Repository as ClusterKeyRepository;
 use crate::util::error::{Error, Result};
@@ -8,6 +8,8 @@ use async_trait::async_trait;
 use config::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
+use crate::infra::kms::kms_provider::KMSProvider;
+use crate::infra::sign_backend::sec_key::{SecClusterKey, SecKey};
 
 pub const KEY_SIZE: usize = 2;
 
@@ -21,9 +23,10 @@ pub trait EncryptionEngine: Send + Sync {
 pub struct EncryptionEngineWithClusterKey {
     //cluster key repository
     cluster_repository: Arc<Box<dyn ClusterKeyRepository>>,
+    kms_provider: Arc<Box<dyn KMSProvider>>,
     encryptor: Arc<Box<dyn Encryptor>>,
     keep_in_days: i64,
-    latest_cluster_key: Box<ClusterKey>,
+    latest_cluster_key: Box<SecClusterKey>,
 }
 
 /// considering we have rotated cluster key for safety concern
@@ -37,7 +40,7 @@ pub struct EncryptionEngineWithClusterKey {
 impl EncryptionEngineWithClusterKey {
     pub fn new(
         cluster_repository: Arc<Box<dyn ClusterKeyRepository>>,
-        config: &HashMap<String, Value>,
+        config: &HashMap<String, Value>, kms_provider: Arc<Box<dyn KMSProvider>>,
     ) -> Result<Self> {
         let encryptor = AlgorithmFactory::new_algorithm(
             &config
@@ -53,7 +56,9 @@ impl EncryptionEngineWithClusterKey {
                 .expect("encryption engine should configured")
                 .to_string()
                 .parse()?,
-            latest_cluster_key: Box::new(ClusterKey::default()),
+            latest_cluster_key: Box::new(SecClusterKey::default()),
+            kms_provider,
+
         })
     }
 }
@@ -68,10 +73,10 @@ impl EncryptionEngineWithClusterKey {
         result
     }
 
-    async fn get_used_cluster_key(&self, data: &[u8]) -> Result<ClusterKey> {
+    async fn get_used_sec_cluster_key(&self, data: &[u8]) -> Result<SecClusterKey> {
         //convert the cluster back and obtain from database, hard code here.
         let cluster_id: i32 = (data[0] as i32) * 256 + data[1] as i32;
-        self.cluster_repository.get_by_id(cluster_id).await
+        SecClusterKey::load( self.cluster_repository.get_by_id(cluster_id).await?, &self.kms_provider).await
     }
 }
 #[async_trait]
@@ -83,15 +88,17 @@ impl EncryptionEngine for EncryptionEngineWithClusterKey {
             .get_latest(&self.encryptor.algorithm().to_string())
             .await?;
         match key {
-            Some(k) => *self.latest_cluster_key = k,
+            Some(k) => *self.latest_cluster_key = SecClusterKey::load(k, &self.kms_provider).await?,
             None => {
                 let cluster_key = ClusterKey::new(
-                    self.encryptor.generate_key(),
+                        self.kms_provider.encode(
+                            key::encode_u8_to_hex_string(&self.encryptor.generate_key()))
+                        .await?.as_bytes().to_vec(),
                     self.encryptor.algorithm().to_string(),
                     self.keep_in_days,
                 )?;
                 //insert when no records
-                self.cluster_repository.create(&cluster_key).await?;
+                self.cluster_repository.create(cluster_key).await?;
                 match self
                     .cluster_repository
                     .get_latest(&self.encryptor.algorithm().to_string())
@@ -102,7 +109,7 @@ impl EncryptionEngine for EncryptionEngineWithClusterKey {
                             "can't find latest cluster key from database".to_string(),
                         ))
                     }
-                    Some(cluster) => *self.latest_cluster_key = cluster,
+                    Some(cluster) => *self.latest_cluster_key = SecClusterKey::load(cluster, &self.kms_provider).await?,
                 }
             }
         }
@@ -120,9 +127,9 @@ impl EncryptionEngine for EncryptionEngineWithClusterKey {
     async fn decode(&self, content: Vec<u8>) -> Result<Vec<u8>> {
         //1. obtain cluster key id from content
         //2. use cluster key to decrypt data
-        let cluster_key = self.get_used_cluster_key(&content[0..KEY_SIZE]).await?;
+        let sec_cluster_key = self.get_used_sec_cluster_key(&content[0..KEY_SIZE]).await?;
         self.encryptor.decrypt(
-            cluster_key.data.unsecure().to_owned(),
+            sec_cluster_key.data.unsecure().to_owned(),
             content[KEY_SIZE..].to_vec(),
         )
     }

@@ -69,7 +69,7 @@ impl Display for KeyType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DataKey {
     pub id: i32,
     pub name: String,
@@ -78,9 +78,9 @@ pub struct DataKey {
     pub email: String,
     pub attributes: HashMap<String, String>,
     pub key_type: KeyType,
-    pub private_key: SecVec<u8>,
-    pub public_key: SecVec<u8>,
-    pub certificate: SecVec<u8>,
+    pub private_key: Vec<u8>,
+    pub public_key: Vec<u8>,
+    pub certificate: Vec<u8>,
     pub create_at: DateTime<Utc>,
     pub expire_at: DateTime<Utc>,
     pub soft_delete: bool,

@@ -1,4 +1,4 @@
-use crate::infra::cipher::algorithm::traits::{Algorithm, Encryptor};
+use crate::infra::encryption::algorithm::traits::{Algorithm, Encryptor};
 use crate::util::error::Error;
 use aes_gcm_siv::{
     aead::{Aead, KeyInit, OsRng},

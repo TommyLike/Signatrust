@@ -12,26 +12,28 @@ use signatrust::{
     SignStreamResponse,
 };
 use tonic::{Request, Response, Status, Streaming};
-use crate::infra::database::model::datakey::repository::EncryptedDataKeyRepository;
+use crate::infra::database::model::datakey::repository::DataKeyRepository;
+use crate::infra::sign_backend::traits::SignBackend;
 
 
 use crate::util::error::Result as InnerResult;
 use crate::util::signer_container::DataKeyContainer;
 
 pub struct SignService {
-    data_key_repository: Arc<EncryptedDataKeyRepository>,
+    sign_backend: Arc<Box<dyn SignBackend>>,
     container: DataKeyContainer
 }
 
 impl SignService {
-    pub fn new(data_key_repository: Arc<EncryptedDataKeyRepository>) -> SignService {
+    pub fn new(data_key_repository: Arc<DataKeyRepository>, sign_backend: Arc<Box<dyn SignBackend>>) -> SignService {
         SignService {
-            data_key_repository: data_key_repository.clone(),
             container: DataKeyContainer::new(data_key_repository),
+            sign_backend,
         }
     }
     async fn sign_stream_inner(&self, key_type: String, key_name: String, options: &HashMap<String, String>, data: Vec<u8>) -> InnerResult<Vec<u8>> {
-        self.container.get_signer(key_type, key_name).await?.sign(data.clone(), options.clone())
+        self.sign_backend.sign(
+            &self.container.get_data_key(key_type, key_name).await?, data, options.clone()).await
     }
 }
 
@@ -70,7 +72,7 @@ impl Signatrust for SignService {
     }
 }
 
-pub fn get_grpc_service(data_key_repository: Arc<EncryptedDataKeyRepository>) -> SignatrustServer<SignService> {
-    let app = SignService::new(data_key_repository);
+pub fn get_grpc_service(data_key_repository: Arc<DataKeyRepository>, sign_backend: Arc<Box<dyn SignBackend>>) -> SignatrustServer<SignService> {
+    let app = SignService::new(data_key_repository, sign_backend);
     SignatrustServer::new(app)
 }

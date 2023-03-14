@@ -1,9 +1,10 @@
 use crate::model::datakey::entity::DataKey;
 use crate::util::error::Result;
 use std::collections::HashMap;
+use crate::infra::sign_backend::sec_key::SecKey;
 
 pub trait SignPlugins: Send + Sync {
-    fn new(db: &DataKey) -> Result<Self>
+    fn new(db: &SecKey) -> Result<Self>
     where
         Self: Sized;
     fn parse_attributes(

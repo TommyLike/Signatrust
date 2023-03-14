@@ -20,6 +20,10 @@ use crate::infra::database::model::user::repository::UserRepository;
 use crate::model::token::entity::Token;
 use crate::model::token::repository::Repository as tokenRepository;
 use crate::model::user::entity::User;
+use config::Config;
+use std::sync::Arc;
+use std::sync::RwLock;
+use crate::server::control_server::OIDCConfig;
 use crate::service::control_service::model::token::dto::TokenDTO;
 
 #[derive(Deserialize)]
@@ -27,9 +31,14 @@ struct Code {
     pub code: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct UserEmail {
     pub email: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct AccessToken {
+    pub access_token: String,
 }
 
 async fn login(client: web::Data<CoreClient>) -> Result<impl Responder, Error> {
@@ -52,24 +61,22 @@ async fn logout(id: Identity) -> Result<impl Responder, Error> {
     Ok( HttpResponse::NoContent().finish())
 }
 
-async fn callback(req: HttpRequest, client: web::Data<CoreClient>, user_repo: web::Data<UserRepository>, userinfo_url: web::Data<String>, code: web::Query<Code>) -> Result<impl Responder, Error> {
-    match client
-        .exchange_code(AuthorizationCode::new(code.code.clone()))
-        .request_async(async_http_client).await {
+async fn callback(req: HttpRequest, user_repo: web::Data<UserRepository>, oidc_config: web::Data<OIDCConfig>, code: web::Query<Code>) -> Result<impl Responder, Error> {
+    match get_access_token(&oidc_config.token_url, &code.code, &oidc_config.client_id, &oidc_config.client_secret, &oidc_config.redirect_uri).await {
         Ok(token_response) => {
-            let id: User = User::new(get_user_info(&userinfo_url, token_response.access_token().secret()).await?.email)?;
+            let id: User = User::new(get_user_info(&oidc_config.into_inner().user_info_url, &token_response.access_token).await?.email)?;
             let user_entity:UserIdentity = UserIdentity::from(user_repo.into_inner().create(&id).await?);
             match Identity::login(&req.extensions(), serde_json::to_string(&user_entity)?) {
                 Ok(_) => {
                     Ok(HttpResponse::Found().insert_header(("Location", "/")).finish())
                 }
                 Err(err) => {
-                    Err(Error::AuthError(format!("failed to get oidc token {}", err.to_string())))
+                    Err(Error::AuthError(format!("failed to get oidc token {}", err)))
                 }
             }
         }
         Err(err) => {
-            Err(Error::AuthError(format!("failed to get oidc token {}", err.to_string())))
+            Err(Error::AuthError(format!("failed to get access token {}", err)))
         }
     }
 }
@@ -97,6 +104,24 @@ async fn get_user_info(userinfo_url: &str, access_token: &str) -> Result<UserEma
         Ok(client) => {
             let resp: UserEmail = client.get(userinfo_url).send().await?.json().await?;
             Ok(resp)
+        }
+        Err(err) => {
+            Err(Error::AuthError(err.to_string()))
+        }
+    }
+}
+
+// NOTE: openidconnect can't handle the case additional attributes returned in the token API
+async fn get_access_token(token_url: &str, code: &str, client_id: &str, client_secret: &str, redirect_uri: &str) -> Result<AccessToken, Error> {
+    match Client::builder().build() {
+        Ok(client) => {
+            let token: AccessToken = client.post(token_url).query(&[
+                ("client_id", client_id),
+                ("client_secret", client_secret),
+                ("code", code),
+                ("redirect_uri", redirect_uri),
+                ("grant_type", "authorization_code")]).send().await?.json().await?;
+            Ok(token)
         }
         Err(err) => {
             Err(Error::AuthError(err.to_string()))

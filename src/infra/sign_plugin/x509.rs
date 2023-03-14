@@ -18,6 +18,7 @@ use secstr::SecVec;
 use serde::Deserialize;
 
 use validator::{Validate, ValidationError};
+use crate::infra::sign_backend::sec_key::SecKey;
 
 use crate::model::datakey::entity::DataKey;
 use crate::model::datakey::traits::Identity;
@@ -126,12 +127,12 @@ impl X509Plugin {
 }
 
 impl SignPlugins for X509Plugin {
-    fn new(db: &DataKey) -> Result<Self> {
+    fn new(db: &SecKey) -> Result<Self> {
         Ok(Self {
             private_key: db.private_key.clone(),
             public_key: db.public_key.clone(),
             certificate: db.certificate.clone(),
-            identity: db.get_identity(),
+            identity: db.identity.clone(),
         })
     }
 

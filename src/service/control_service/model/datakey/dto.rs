@@ -25,7 +25,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
 pub struct ExportKey {
-    pub private_key: String,
     pub public_key: String,
     pub certificate: String,
 }
@@ -35,9 +34,8 @@ impl TryFrom<DataKey> for ExportKey {
 
     fn try_from(value: DataKey) -> std::result::Result<Self, Self::Error> {
         Ok(ExportKey{
-            private_key: String::from_utf8_lossy(value.private_key.unsecure()).to_string(),
-            public_key: String::from_utf8_lossy(value.public_key.unsecure()).to_string(),
-            certificate: String::from_utf8_lossy(value.certificate.unsecure()).to_string(),
+            public_key: String::from_utf8_lossy(&value.public_key).to_string(),
+            certificate: String::from_utf8_lossy(&value.certificate).to_string()
         })
     }
 }
@@ -87,9 +85,9 @@ impl TryFrom<DataKeyDTO> for DataKey {
             email: dto.email,
             attributes: combined_attributes,
             key_type: KeyType::from_str(dto.key_type.as_str())?,
-            private_key: SecVec::new(vec![]),
-            public_key: SecVec::new(vec![]),
-            certificate: SecVec::new(vec![]),
+            private_key: vec![],
+            public_key: vec![],
+            certificate: vec![],
             create_at: dto.create_at.parse()?,
             expire_at: dto.expire_at.parse()?,
             soft_delete: false,

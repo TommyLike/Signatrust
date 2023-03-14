@@ -16,7 +16,7 @@ use actix_session::{config::PersistentSession, storage::CookieSessionStore, Sess
 use time::Duration as timeDuration;
 
 
-use crate::infra::cipher::engine::{EncryptionEngine, EncryptionEngineWithClusterKey};
+use crate::infra::encryption::engine::{EncryptionEngine, EncryptionEngineWithClusterKey};
 use crate::infra::database::model::clusterkey::repository;
 use crate::infra::database::model::datakey::repository as datakeyRepository;
 use crate::infra::database::pool::{create_pool, get_db_pool};
@@ -35,46 +35,59 @@ use openidconnect::core::{
 use openidconnect::{JsonWebKeySet, ClientId, AuthUrl, UserInfoUrl, TokenUrl, RedirectUrl, ClientSecret, IssuerUrl};
 use crate::infra::database::model::token::repository::TokenRepository;
 use crate::infra::database::model::user::repository::UserRepository;
+use crate::infra::sign_backend::factory::SignBackendFactory;
+use crate::infra::sign_backend::traits::SignBackend;
+
+pub struct OIDCConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    pub token_url: String,
+    pub redirect_uri: String,
+    pub user_info_url: String
+}
 
 pub struct ControlServer {
     server_config: Arc<RwLock<Config>>,
-    data_key_repository: web::Data<datakeyRepository::EncryptedDataKeyRepository>,
+    data_key_repository: web::Data<datakeyRepository::DataKeyRepository>,
     user_repository: web::Data<UserRepository>,
     token_repository: web::Data<TokenRepository>,
+    sign_backend: web::Data<Box<dyn SignBackend>>
 }
 
 impl ControlServer {
     pub async fn new(server_config: Arc<RwLock<Config>>) -> Result<Self> {
-        //initialize database and kms backend
-        let kms_provider = factory::KMSProviderFactory::new_provider(
-            &server_config.read()?.get_table("kms-provider")?,
-        )?;
         let database = server_config.read()?.get_table("database")?;
         create_pool(&database).await?;
-        let repository =
-            repository::EncryptedClusterKeyRepository::new(get_db_pool()?, kms_provider.clone());
-        //initialize signature plugins
-        let engine_config = server_config.read()?.get_table("encryption-engine")?;
-        let mut engine = EncryptionEngineWithClusterKey::new(
-            Arc::new(Box::new(repository.clone())),
-            &engine_config,
-        )?;
-        engine.initialize().await?;
-        let data_repository = datakeyRepository::EncryptedDataKeyRepository::new(
+        let sign_backend = SignBackendFactory::new_engine(
+            server_config.clone(), get_db_pool()?).await?;
+
+        let data_repository = datakeyRepository::DataKeyRepository::new(
             get_db_pool()?,
-            Arc::new(Box::new(engine)),
         );
+
         //initialize user repo
         let user_repo = UserRepository::new(get_db_pool()?);
+
         //initialize user repo
         let token_repo = TokenRepository::new(get_db_pool()?);
         let server = ControlServer {
             server_config,
+            sign_backend: web::Data::new(sign_backend),
             data_key_repository: web::Data::new(data_repository),
             user_repository: web::Data::new(user_repo),
             token_repository: web::Data::new(token_repo),
         };
         Ok(server)
+    }
+
+    pub fn initialize_oidc_info(&self) -> Result<OIDCConfig> {
+        Ok(OIDCConfig{
+            client_id: self.server_config.read()?.get_string("oidc.client_id")?,
+            client_secret: self.server_config.read()?.get_string("oidc.client_secret")?,
+            token_url: self.server_config.read()?.get_string("oidc.token_url")?,
+            redirect_uri: self.server_config.read()?.get_string("oidc.redirect_url")?,
+            user_info_url: self.server_config.read()?.get_string("oidc.userinfo_url")?,
+        })
     }
 
     pub fn initialize_oidc_client(&self) -> Result<CoreClient> {
@@ -88,6 +101,8 @@ impl ControlServer {
             JsonWebKeySet::default()).set_redirect_uri(RedirectUrl::new(self.server_config.read()?.get_string("oidc.redirect_url")?)?,
         ))
     }
+
+
 
     pub async fn run(&self) -> Result<()> {
         //start actix web server
@@ -107,21 +122,23 @@ impl ControlServer {
         //initialize oidc client
         let client = web::Data::new(self.initialize_oidc_client()?);
         //TODO: remove me when openid connect library is ready
-        let user_info_url = web::Data::new(self.server_config.read()?.get_string("oidc.userinfo_url")?);
+        let oidc_config = web::Data::new(self.initialize_oidc_info()?);
 
         info!("control server starts");
         // Start http server
         let data_key_repository = self.data_key_repository.clone();
         let user_repository = self.user_repository.clone();
         let token_repository = self.token_repository.clone();
+        let sign_backend = self.sign_backend.clone();
         let http_server = HttpServer::new(move || {
             App::new()
                 // enable logger
                 .app_data(data_key_repository.clone())
                 .app_data(client.clone())
-                .app_data(user_info_url.clone())
                 .app_data(user_repository.clone())
                 .app_data(token_repository.clone())
+                .app_data(sign_backend.clone())
+                .app_data(oidc_config.clone())
                 .wrap(middleware::Logger::default())
                 .wrap(IdentityMiddleware::default())
                 .wrap(

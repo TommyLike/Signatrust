@@ -21,36 +21,28 @@ pub(super) struct ClusterKeyDTO {
     pub expire_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl ClusterKeyDTO {
-    pub async fn encrypt(
-        cluster_key: &ClusterKey,
-        kms_provider: &Arc<Box<dyn KMSProvider>>,
-    ) -> Result<Self> {
-        Ok(Self {
+impl From<ClusterKeyDTO> for ClusterKey {
+    fn from(dto: ClusterKeyDTO) -> Self {
+        ClusterKey {
+            id: dto.id,
+            data: dto.data,
+            algorithm: dto.algorithm,
+            identity: dto.identity,
+            create_at: dto.create_at,
+            expire_at: dto.expire_at,
+        }
+    }
+}
+
+impl From<ClusterKey> for ClusterKeyDTO {
+    fn from(cluster_key: ClusterKey) -> Self {
+        Self {
             id: cluster_key.id,
-            data: kms_provider
-                .encode(key::encode_u8_to_hex_string(&cluster_key.data.unsecure()))
-                .await?
-                .as_bytes()
-                .to_vec(),
-            algorithm: cluster_key.algorithm.clone(),
-            identity: cluster_key.identity.clone(),
+            data: cluster_key.data,
+            algorithm: cluster_key.algorithm,
+            identity: cluster_key.identity,
             create_at: cluster_key.create_at,
             expire_at: cluster_key.expire_at,
-        })
-    }
-    pub async fn decrypt(&self, kms_provider: &Arc<Box<dyn KMSProvider>>) -> Result<ClusterKey> {
-        Ok(ClusterKey {
-            id: self.id,
-            data: SecVec::new(key::decode_hex_string_to_u8(
-                &kms_provider
-                    .decode(String::from_utf8(self.data.clone())?)
-                    .await?,
-            )),
-            algorithm: self.algorithm.clone(),
-            identity: self.identity.clone(),
-            create_at: self.create_at,
-            expire_at: self.expire_at,
-        })
+        }
     }
 }

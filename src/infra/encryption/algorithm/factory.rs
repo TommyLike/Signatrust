@@ -1,5 +1,5 @@
-use crate::infra::cipher::algorithm::aes::Aes256GcmEncryptor;
-use crate::infra::cipher::algorithm::traits::{Algorithm, Encryptor};
+use crate::infra::encryption::algorithm::aes::Aes256GcmEncryptor;
+use crate::infra::encryption::algorithm::traits::{Algorithm, Encryptor};
 use crate::util::error::{Result};
 
 
