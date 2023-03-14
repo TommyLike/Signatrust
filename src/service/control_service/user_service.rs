@@ -8,7 +8,7 @@ use actix_identity::Identity;
 
 use openidconnect::{
     AuthenticationFlow, CsrfToken, Nonce,
-    OAuth2TokenResponse, core::CoreResponseType, core::CoreClient
+    core::CoreResponseType, core::CoreClient
 };
 
 use crate::model::user::repository::Repository as userRepository;

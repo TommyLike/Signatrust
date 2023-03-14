@@ -17,7 +17,7 @@ impl FromStr for SignBackendType {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "memory" => Ok(SignBackendType::Memory),
-            _ => Err(Error::UnsupportedTypeError(format!("{} sign engine type", s))),
+            _ => Err(Error::UnsupportedTypeError(format!("{} sign backend type", s))),
         }
     }
 }
@@ -29,7 +29,7 @@ impl SignBackendFactory {
         let engine_type = SignBackendType::from_str(
             config.read()?.get_string("sign-backend.type")?.as_str(),
         )?;
-        info!("sign engine configured with {:?}", engine_type);
+        info!("sign backend configured with plugin {:?}", engine_type);
         match engine_type {
             SignBackendType::Memory => Ok(Box::new(MemorySignBackend::new(config, db_pool).await?)),
         }

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use md5::{Digest};
 use std::sync::Arc;
 pub mod signatrust {
     tonic::include_proto!("signatrust");

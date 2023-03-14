@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use clap::{Args};
 use crate::util::error::Result;
 use config::{Config};
@@ -109,7 +108,7 @@ impl CommandAddHandler {
                 return Ok(vec![sign_identity::SignIdentity::new(
                     self.file_type.clone(), self.path.clone(), self.key_type.clone(), self.key_id.clone(), self.get_sign_options())]);
         }
-        return Err(error::Error::NoFileCandidateError);
+        Err(error::Error::NoFileCandidateError)
     }
 
     fn file_candidates(&self, extension: &str) -> Result<bool> {
@@ -289,6 +288,6 @@ impl SignCommand for CommandAddHandler {
         if failed_files.load(Ordering::Relaxed) != 0 {
             return Ok(false)
         }
-        return Ok(true)
+        Ok(true)
     }
 }
