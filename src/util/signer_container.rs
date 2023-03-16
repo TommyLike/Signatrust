@@ -2,18 +2,23 @@ use std::collections::HashMap;
 use std::sync::{Arc};
 use tokio::sync::RwLock;
 use crate::util::error::Result;
-use crate::infra::database::model::datakey::repository::DataKeyRepository;
 use crate::domain::datakey::repository::Repository;
 
 use crate::domain::datakey::entity::DataKey;
 
-pub struct DataKeyContainer {
-    repository: Arc<DataKeyRepository>,
+pub struct DataKeyContainer<R>
+where
+    R: Repository
+{
+    repository: R,
     containers: Arc<RwLock<HashMap<String, DataKey>>>,
 }
 
-impl DataKeyContainer {
-    pub fn new(repository: Arc<DataKeyRepository>) -> DataKeyContainer {
+impl<R> DataKeyContainer<R>
+where
+    R: Repository
+{
+    pub fn new(repository: R) -> Self {
         Self {
             repository,
             containers: Arc::new(RwLock::new(HashMap::new()))

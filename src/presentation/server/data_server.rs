@@ -1,10 +1,7 @@
-
 use std::net::SocketAddr;
 use std::sync::{Arc, atomic::AtomicBool, RwLock};
 use std::sync::atomic::Ordering;
-
 use config::Config;
-
 use tokio::fs;
 use tokio::time::{Duration, sleep};
 use tonic::{
@@ -14,44 +11,35 @@ use tonic::{
     },
 };
 
-
-
-
-use crate::infra::database::model::datakey::repository as datakeyRepository;
+use crate::infra::database::model::datakey::repository;
 use crate::infra::database::pool::{create_pool, get_db_pool};
-
 use crate::application::sign::factory::SignServiceFactory;
 use crate::domain::sign_service::SignService;
-
-
 use crate::presentation::handler::data::sign_handler::get_grpc_handler;
-
 use crate::util::error::Result;
 
-pub struct DataServer {
+pub struct DataServer
+{
     server_config: Arc<RwLock<Config>>,
     signal: Arc<AtomicBool>,
     server_identity: Option<Identity>,
     ca_cert: Option<Certificate>,
-    data_key_repository: Arc<datakeyRepository::DataKeyRepository>,
-    sign_service: Arc<Box<dyn SignService>>
+    data_key_repository: repository::DataKeyRepository,
 }
 
-impl DataServer {
+impl DataServer
+{
     pub async fn new(server_config: Arc<RwLock<Config>>, signal: Arc<AtomicBool>) -> Result<Self> {
         let database = server_config.read()?.get_table("database")?;
         create_pool(&database).await?;
-        let sign_service = SignServiceFactory::new_engine(
-            server_config.clone(), get_db_pool()?).await?;
-        let data_repository = datakeyRepository::DataKeyRepository::new(
+        let data_repository = repository::DataKeyRepository::new(
             get_db_pool()?);
         let mut server = DataServer {
             server_config,
             signal,
             server_identity: None,
             ca_cert: None,
-            data_key_repository: Arc::new(data_repository),
-            sign_service: Arc::new(sign_service)
+            data_key_repository: data_repository,
         };
         server.load().await?;
         Ok(server)
@@ -103,15 +91,17 @@ impl DataServer {
 
         let mut server = Server::builder();
         info!("data server starts");
+        let sign_service = SignServiceFactory::new_engine(
+            self.server_config.clone(), get_db_pool()?).await?;
         if let Some(identity) = self.server_identity.clone() {
             server
                 .tls_config(ServerTlsConfig::new().identity(identity).client_ca_root(self.ca_cert.clone().unwrap()))?
-                .add_service(get_grpc_handler(self.data_key_repository.clone(), self.sign_service.clone()))
+                .add_service(get_grpc_handler(self.data_key_repository.clone(), sign_service.clone()))
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         } else {
             server
-                .add_service(get_grpc_handler(self.data_key_repository.clone(), self.sign_service.clone()))
+                .add_service(get_grpc_handler(self.data_key_repository.clone(), sign_service.clone()))
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         }

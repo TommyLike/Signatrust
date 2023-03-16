@@ -58,7 +58,7 @@ impl ControlServer {
         let token_repo = TokenRepository::new(get_db_pool()?);
         let server = ControlServer {
             server_config,
-            sign_service: web::Data::new(sign_service),
+            sign_service: web::Data::new(Box::new(sign_service)),
             data_key_repository: web::Data::new(data_repository),
             user_repository: web::Data::new(user_repo),
             token_repository: web::Data::new(token_repo),

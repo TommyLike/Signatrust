@@ -1,7 +1,7 @@
 use crate::infra::kms::huaweicloud::HuaweiCloudKMS;
 use crate::infra::kms::dummy::DummyKMS;
 use crate::domain::kms_provider::{KMSProvider, KMSType};
-use crate::util::error::{Error, Result};
+use crate::util::error::{Result};
 use config::Value;
 use std::collections::HashMap;
 use std::str::FromStr;

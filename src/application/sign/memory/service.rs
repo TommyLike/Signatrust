@@ -19,6 +19,7 @@ use async_trait::async_trait;
 
 
 /// Memory Sign Backend will perform all sensitive operations directly in host memory.
+#[derive(Clone)]
 pub struct MemorySignService {
     server_config: Arc<RwLock<Config>>,
     engine: Arc<Box<dyn EncryptionEngine>>

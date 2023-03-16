@@ -22,7 +22,7 @@ impl FromStr for SignServiceType {
 }
 
 #[async_trait]
-pub trait SignService: Send + Sync {
+pub trait SignService: Send + Sync{
     async fn generate_keys(&self, data_key: &mut DataKey) -> Result<()>;
     async fn sign(&self, data_key: &DataKey, content: Vec<u8>, options: HashMap<String, String>) -> Result<Vec<u8>>;
     async fn decode_public_keys(&self, data_key: &mut DataKey) -> Result<()>;

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use std::sync::Arc;
 pub mod signatrust {
     tonic::include_proto!("signatrust");
 }
@@ -11,20 +10,28 @@ use signatrust::{
     SignStreamResponse,
 };
 use tonic::{Request, Response, Status, Streaming};
-use crate::infra::database::model::datakey::repository::DataKeyRepository;
+use crate::domain::datakey::repository::Repository;
 use crate::domain::sign_service::SignService;
 
 
 use crate::util::error::Result as InnerResult;
 use crate::util::signer_container::DataKeyContainer;
 
-pub struct SignHandler {
-    sign_service: Arc<Box<dyn SignService>>,
-    container: DataKeyContainer
+pub struct SignHandler<R, S>
+where
+    R: Repository,
+    S: SignService
+{
+    sign_service: S,
+    container: DataKeyContainer<R>
 }
 
-impl SignHandler {
-    pub fn new(data_key_repository: Arc<DataKeyRepository>, sign_service: Arc<Box<dyn SignService>>) -> SignHandler {
+impl<R, S> SignHandler<R, S>
+where
+    R: Repository,
+    S: SignService
+{
+    pub fn new(data_key_repository: R, sign_service: S) -> Self {
         SignHandler {
             container: DataKeyContainer::new(data_key_repository),
             sign_service,
@@ -37,7 +44,11 @@ impl SignHandler {
 }
 
 #[tonic::async_trait]
-impl Signatrust for SignHandler {
+impl<R, S> Signatrust for SignHandler<R, S>
+where
+    R: Repository + 'static,
+    S: SignService + 'static
+{
     async fn sign_stream(
         &self,
         request: Request<Streaming<SignStreamRequest>>,
@@ -71,7 +82,11 @@ impl Signatrust for SignHandler {
     }
 }
 
-pub fn get_grpc_handler(data_key_repository: Arc<DataKeyRepository>, sign_service: Arc<Box<dyn SignService>>) -> SignatrustServer<SignHandler> {
+pub fn get_grpc_handler<R, S>(data_key_repository: R, sign_service: S) -> SignatrustServer<SignHandler<R, S>>
+where
+    R: Repository + 'static,
+    S: SignService + 'static
+{
     let app = SignHandler::new(data_key_repository, sign_service);
     SignatrustServer::new(app)
 }
