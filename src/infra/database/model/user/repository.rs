@@ -1,8 +1,8 @@
 use super::dto::UserDTO;
 
 use crate::infra::database::pool::DbPool;
-use crate::model::user::entity::User;
-use crate::model::user::repository::Repository;
+use crate::domain::user::entity::User;
+use crate::domain::user::repository::Repository;
 use crate::util::error::Result;
 use async_trait::async_trait;
 use std::boxed::Box;

@@ -1,5 +1,5 @@
 
-use crate::model::clusterkey::entity::ClusterKey;
+use crate::domain::clusterkey::entity::ClusterKey;
 
 
 

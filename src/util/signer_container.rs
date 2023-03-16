@@ -3,9 +3,9 @@ use std::sync::{Arc};
 use tokio::sync::RwLock;
 use crate::util::error::Result;
 use crate::infra::database::model::datakey::repository::DataKeyRepository;
-use crate::model::datakey::repository::Repository;
+use crate::domain::datakey::repository::Repository;
 
-use crate::model::datakey::entity::DataKey;
+use crate::domain::datakey::entity::DataKey;
 
 pub struct DataKeyContainer {
     repository: Arc<DataKeyRepository>,

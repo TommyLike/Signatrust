@@ -1,9 +1,9 @@
 
 
 
-use crate::model::datakey::entity::{DataKey, KeyState};
-use crate::model::datakey::entity::KeyType;
-use crate::model::datakey::traits::ExtendableAttributes;
+use crate::domain::datakey::entity::{DataKey, KeyState};
+use crate::domain::datakey::entity::KeyType;
+use crate::domain::datakey::traits::ExtendableAttributes;
 use crate::util::error::{Error};
 use crate::util::key;
 use chrono::{DateTime, Utc};

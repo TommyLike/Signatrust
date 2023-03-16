@@ -1,24 +1,17 @@
 use crate::infra::encryption::algorithm::factory::AlgorithmFactory;
-use crate::infra::encryption::algorithm::traits::Encryptor;
-use crate::model::clusterkey::entity::ClusterKey;
-use crate::model::clusterkey::repository::Repository as ClusterKeyRepository;
+use crate::domain::encryptor::Encryptor;
+use crate::domain::encryption_engine::EncryptionEngine;
+use crate::domain::clusterkey::entity::{ClusterKey, SecClusterKey};
+use crate::domain::clusterkey::repository::Repository as ClusterKeyRepository;
 use crate::util::error::{Error, Result};
 use crate::util::key;
 use async_trait::async_trait;
 use config::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::infra::kms::kms_provider::KMSProvider;
-use crate::infra::sign_backend::sec_key::{SecClusterKey};
+use crate::domain::kms_provider::KMSProvider;
 
 pub const KEY_SIZE: usize = 2;
-
-#[async_trait]
-pub trait EncryptionEngine: Send + Sync {
-    async fn initialize(&mut self) -> Result<()>;
-    async fn encode(&self, content: Vec<u8>) -> Result<Vec<u8>>;
-    async fn decode(&self, content: Vec<u8>) -> Result<Vec<u8>>;
-}
 
 pub struct EncryptionEngineWithClusterKey {
     //cluster key repository

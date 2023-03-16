@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 
 
 
-use crate::model::token::entity::Token;
+use crate::domain::token::entity::Token;
 
 #[derive(Debug, FromRow)]
 pub(super) struct TokenDTO {

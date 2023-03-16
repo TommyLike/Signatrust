@@ -1,10 +1,4 @@
-
 use std::collections::HashMap;
-
-
-
-
-
 
 use chrono::{DateTime, Utc};
 use openssl::asn1::Asn1Time;
@@ -18,13 +12,9 @@ use secstr::SecVec;
 use serde::Deserialize;
 
 use validator::{Validate, ValidationError};
-use crate::infra::sign_backend::sec_key::SecKey;
-
-
-
+use crate::domain::datakey::entity::SecDataKey;
 use crate::util::error::{Error, Result};
-
-use super::traits::SignPlugins;
+use crate::domain::sign_plugin::SignPlugins;
 
 #[derive(Debug, Validate, Deserialize)]
 pub struct X509KeyGenerationParameter {
@@ -127,7 +117,7 @@ impl X509Plugin {
 }
 
 impl SignPlugins for X509Plugin {
-    fn new(db: &SecKey) -> Result<Self> {
+    fn new(db: &SecDataKey) -> Result<Self> {
         Ok(Self {
             private_key: db.private_key.clone(),
             public_key: db.public_key.clone(),

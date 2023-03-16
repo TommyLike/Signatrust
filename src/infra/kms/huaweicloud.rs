@@ -1,4 +1,4 @@
-use crate::infra::kms::kms_provider::KMSProvider;
+use crate::domain::kms_provider::KMSProvider;
 use crate::util::error::{Error, Result};
 use async_trait::async_trait;
 use config::Value;

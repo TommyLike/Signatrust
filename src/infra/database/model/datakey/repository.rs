@@ -3,8 +3,8 @@ use super::dto::DataKeyDTO;
 
 use crate::infra::database::pool::DbPool;
 
-use crate::model::datakey::entity::{DataKey, KeyState};
-use crate::model::datakey::repository::Repository;
+use crate::domain::datakey::entity::{DataKey, KeyState};
+use crate::domain::datakey::repository::Repository;
 use crate::util::error::{Result};
 use async_trait::async_trait;
 use std::boxed::Box;
