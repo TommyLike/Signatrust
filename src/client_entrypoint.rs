@@ -10,7 +10,9 @@ use crate::client::cmd::traits::SignCommand;
 mod util;
 mod client;
 mod infra;
-mod model;
+mod domain;
+mod application;
+mod presentation;
 
 
 #[macro_use]

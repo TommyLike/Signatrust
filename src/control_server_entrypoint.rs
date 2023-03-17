@@ -6,10 +6,10 @@ use std::env;
 use std::sync::{atomic::AtomicBool, Arc, RwLock};
 
 mod infra;
-mod model;
-mod server;
-mod service;
+mod domain;
+mod presentation;
 mod util;
+mod application;
 
 #[macro_use]
 extern crate log;
@@ -52,7 +52,7 @@ async fn main() -> Result<()> {
     //prepare config and logger
     env_logger::init();
     //control server starts
-    let control_server = server::control_server::ControlServer::new(SERVERCONFIG.clone()).await?;
+    let control_server = presentation::server::control_server::ControlServer::new(SERVERCONFIG.clone()).await?;
     control_server.run().await?;
     Ok(())
 }

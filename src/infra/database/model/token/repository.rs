@@ -1,6 +1,6 @@
 use crate::infra::database::pool::DbPool;
-use crate::model::token::entity::{Token};
-use crate::model::token::repository::Repository;
+use crate::domain::token::entity::{Token};
+use crate::domain::token::repository::Repository;
 use crate::util::error::Result;
 use async_trait::async_trait;
 use std::boxed::Box;

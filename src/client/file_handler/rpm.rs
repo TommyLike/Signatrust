@@ -107,7 +107,7 @@ impl FileHandler for RpmFileHandler {
         //save data into temp file
         let mut output = File::create(temp_rpm.clone())?;
         package.write(&mut output)?;
-        Ok((temp_rpm.as_path().display().to_string(), format!("{}", path.display().to_string())))
+        Ok((temp_rpm.as_path().display().to_string(), format!("{}", path.display())))
     }
 }
 

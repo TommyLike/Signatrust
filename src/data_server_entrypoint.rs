@@ -5,11 +5,13 @@ use config::Config;
 use std::env;
 use std::sync::{atomic::AtomicBool, Arc, RwLock};
 
+use crate::presentation::server::data_server::DataServer;
+
 mod infra;
-mod model;
-mod server;
-mod service;
+mod domain;
+mod presentation;
 mod util;
+mod application;
 
 #[macro_use]
 extern crate log;
@@ -52,7 +54,7 @@ async fn main() -> Result<()> {
     //prepare config and logger
     env_logger::init();
     //data server starts
-    let data_server = server::data_server::DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone()).await?;
+    let data_server: DataServer = DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone()).await?;
     data_server.run().await?;
     Ok(())
 }

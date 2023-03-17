@@ -8,7 +8,7 @@ use sqlx::FromRow;
 
 
 
-use crate::model::user::entity::User;
+use crate::domain::user::entity::User;
 
 #[derive(Debug, FromRow)]
 pub(super) struct UserDTO {

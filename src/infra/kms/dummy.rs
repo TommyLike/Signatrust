@@ -1,4 +1,4 @@
-use crate::infra::kms::kms_provider::KMSProvider;
+use crate::domain::kms_provider::KMSProvider;
 use crate::util::error::{Result};
 use config::Value;
 use std::collections::HashMap;
