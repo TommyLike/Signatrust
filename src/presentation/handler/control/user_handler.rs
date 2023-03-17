@@ -15,9 +15,9 @@ use crate::domain::user::repository::Repository as userRepository;
 use reqwest::{header, Client};
 use openidconnect::Scope as OIDCScore;
 
-use crate::infra::database::model::token::repository::TokenRepository;
+
 use crate::infra::database::model::user::repository::UserRepository;
-use crate::domain::token::entity::Token;
+
 use crate::domain::token::repository::Repository as tokenRepository;
 use crate::domain::user::entity::User;
 use crate::application::user::UserService;

@@ -4,7 +4,7 @@ use crate::infra::sign_plugin::x509::X509Plugin;
 use crate::domain::datakey::entity::{KeyType};
 use crate::util::error::Result;
 use std::collections::HashMap;
-use std::sync::Arc;
+
 use crate::domain::datakey::entity::SecDataKey;
 
 pub struct Signers {}

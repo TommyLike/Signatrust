@@ -1,4 +1,4 @@
-use crate::infra::encryption::algorithm::factory::AlgorithmFactory;
+
 use crate::domain::encryptor::Encryptor;
 use crate::domain::encryption_engine::EncryptionEngine;
 use crate::domain::clusterkey::entity::{ClusterKey, SecClusterKey};
@@ -8,7 +8,7 @@ use crate::util::key;
 use async_trait::async_trait;
 use config::Value;
 use std::collections::HashMap;
-use std::sync::Arc;
+
 use crate::domain::kms_provider::KMSProvider;
 
 pub const KEY_SIZE: usize = 2;

@@ -2,14 +2,14 @@ use actix_web::{
     HttpResponse, Responder, Result, web, Scope
 };
 
-use crate::infra::database::model::datakey::repository::DataKeyRepository;
+
 use crate::presentation::handler::control::model::datakey::dto::{DataKeyDTO, ExportKey};
 use crate::util::error::Error;
 use validator::Validate;
 use crate::application::datakey::KeyService;
-use crate::domain::sign_service::SignBackend;
 
-use crate::domain::datakey::entity::{DataKey, KeyState};
+
+
 use crate::domain::datakey::repository::Repository;
 use super::model::user::dto::UserIdentity;
 

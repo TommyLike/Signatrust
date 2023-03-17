@@ -5,7 +5,7 @@ use crate::util::error::{Result};
 use config::Value;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
+
 
 pub struct KMSProviderFactory {}
 

@@ -24,7 +24,7 @@ use crate::infra::database::model::token::repository::TokenRepository;
 use crate::infra::database::model::user::repository::UserRepository;
 use crate::infra::sign_backend::factory::SignBackendFactory;
 use crate::application::user::DBUserService;
-use crate::domain::sign_service::SignBackend;
+
 
 pub struct OIDCConfig {
     pub client_id: String,

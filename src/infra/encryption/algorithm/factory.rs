@@ -2,7 +2,7 @@ use crate::infra::encryption::algorithm::aes::Aes256GcmEncryptor;
 use crate::domain::encryptor::{Algorithm, Encryptor};
 use crate::util::error::{Result};
 use std::str::FromStr;
-use std::sync::Arc;
+
 
 pub struct AlgorithmFactory {}
 

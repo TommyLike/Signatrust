@@ -11,12 +11,12 @@ use signatrust::{
 };
 use tonic::{Request, Response, Status, Streaming};
 use crate::application::datakey::KeyService;
-use crate::domain::datakey::repository::Repository;
+
 use crate::domain::sign_service::SignBackend;
 
 
-use crate::util::error::Result as InnerResult;
-use crate::util::signer_container::DataKeyContainer;
+
+
 
 pub struct SignHandler<K>
 where

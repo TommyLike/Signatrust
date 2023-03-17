@@ -2,7 +2,7 @@ use crate::domain::user::entity::User;
 use crate::domain::token::entity::Token;
 use crate::domain::user::repository::Repository as UserRepository;
 use crate::domain::token::repository::Repository as TokenRepository;
-use crate::util::error::{Result, Error};
+use crate::util::error::{Result};
 use async_trait::async_trait;
 use crate::presentation::handler::control::model::user::dto::UserIdentity;
 

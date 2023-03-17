@@ -4,7 +4,7 @@ use clap::Parser;
 use config::Config;
 use std::env;
 use std::sync::{atomic::AtomicBool, Arc, RwLock};
-use crate::domain::sign_service::SignBackend;
+
 use crate::presentation::server::data_server::DataServer;
 
 mod infra;
