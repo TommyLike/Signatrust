@@ -19,11 +19,11 @@ use openidconnect::core::{
     CoreClient,
 };
 use openidconnect::{JsonWebKeySet, ClientId, AuthUrl, UserInfoUrl, TokenUrl, RedirectUrl, ClientSecret, IssuerUrl};
-use crate::application::datakey::DBKeyService;
+use crate::application::datakey::{DBKeyService, KeyService};
 use crate::infra::database::model::token::repository::TokenRepository;
 use crate::infra::database::model::user::repository::UserRepository;
 use crate::infra::sign_backend::factory::SignBackendFactory;
-use crate::application::user::DBUserService;
+use crate::application::user::{DBUserService, UserService};
 
 
 pub struct OIDCConfig {
@@ -105,9 +105,9 @@ impl ControlServer {
         //initialize token repo
         let token_repo = TokenRepository::new(get_db_pool()?);
 
-        let user_service = web::Data::new(DBUserService::new(user_repo.clone(), token_repo));
+        let user_service = web::Data::from(Arc::new(DBUserService::new(user_repo.clone(), token_repo)) as Arc<dyn UserService>);
 
-        let key_service = web::Data::new(DBKeyService::new(data_repository, sign_backend));
+        let key_service = web::Data::from(Arc::new(DBKeyService::new(data_repository, sign_backend)) as Arc<dyn KeyService>);
 
         let http_server = HttpServer::new(move || {
             App::new()

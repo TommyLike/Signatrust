@@ -11,14 +11,8 @@ use openidconnect::{
     core::CoreResponseType, core::CoreClient
 };
 
-use crate::domain::user::repository::Repository as userRepository;
 use reqwest::{header, Client};
 use openidconnect::Scope as OIDCScore;
-
-
-use crate::infra::database::model::user::repository::UserRepository;
-
-use crate::domain::token::repository::Repository as tokenRepository;
 use crate::domain::user::entity::User;
 use crate::application::user::UserService;
 
@@ -61,11 +55,11 @@ async fn logout(id: Identity) -> Result<impl Responder, Error> {
     Ok( HttpResponse::NoContent().finish())
 }
 
-async fn callback(req: HttpRequest, user_repo: web::Data<UserRepository>, oidc_config: web::Data<OIDCConfig>, code: web::Query<Code>) -> Result<impl Responder, Error> {
+async fn callback(req: HttpRequest, user_service: web::Data<dyn UserService>, oidc_config: web::Data<OIDCConfig>, code: web::Query<Code>) -> Result<impl Responder, Error> {
     match get_access_token(&oidc_config.token_url, &code.code, &oidc_config.client_id, &oidc_config.client_secret, &oidc_config.redirect_uri).await {
         Ok(token_response) => {
             let id: User = User::new(get_user_info(&oidc_config.into_inner().user_info_url, &token_response.access_token).await?.email)?;
-            let user_entity:UserIdentity = UserIdentity::from(user_repo.into_inner().create(&id).await?);
+            let user_entity:UserIdentity = UserIdentity::from(user_service.into_inner().save(&id).await?);
             match Identity::login(&req.extensions(), serde_json::to_string(&user_entity)?) {
                 Ok(_) => {
                     Ok(HttpResponse::Found().insert_header(("Location", "/")).finish())
@@ -81,12 +75,12 @@ async fn callback(req: HttpRequest, user_repo: web::Data<UserRepository>, oidc_c
     }
 }
 
-async fn new_token(user: UserIdentity, user_service: web::Data<Box<dyn UserService>>) -> Result<impl Responder, Error> {
+async fn new_token(user: UserIdentity, user_service: web::Data<dyn UserService>) -> Result<impl Responder, Error> {
     let token = user_service.into_inner().generate_token(&user).await?;
     Ok(HttpResponse::Ok().json(TokenDTO::from(token)))
 }
 
-async fn list_token(user: UserIdentity, user_service: web::Data<Box<dyn UserService>>) -> Result<impl Responder, Error> {
+async fn list_token(user: UserIdentity, user_service: web::Data<dyn UserService>) -> Result<impl Responder, Error> {
     let token = user_service.into_inner().get_token(&user).await?;
     let mut results = vec![];
     for t in token.into_iter() {

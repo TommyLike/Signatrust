@@ -12,7 +12,6 @@ use signatrust::{
 use tonic::{Request, Response, Status, Streaming};
 use crate::application::datakey::KeyService;
 
-use crate::domain::sign_service::SignBackend;
 
 
 
