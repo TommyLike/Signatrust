@@ -4,7 +4,7 @@ use clap::Parser;
 use config::Config;
 use std::env;
 use std::sync::{atomic::AtomicBool, Arc, RwLock};
-use crate::domain::sign_service::SignService;
+use crate::domain::sign_service::SignBackend;
 use crate::presentation::server::data_server::DataServer;
 
 mod infra;
@@ -54,7 +54,7 @@ async fn main() -> Result<()> {
     //prepare config and logger
     env_logger::init();
     //data server starts
-    let data_server: DataServer = presentation::server::data_server::DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone()).await?;
+    let data_server: DataServer = DataServer::new(SERVERCONFIG.clone(), SIGNAL.clone()).await?;
     data_server.run().await?;
     Ok(())
 }

@@ -19,10 +19,12 @@ use openidconnect::core::{
     CoreClient,
 };
 use openidconnect::{JsonWebKeySet, ClientId, AuthUrl, UserInfoUrl, TokenUrl, RedirectUrl, ClientSecret, IssuerUrl};
+use crate::application::datakey::DBKeyService;
 use crate::infra::database::model::token::repository::TokenRepository;
 use crate::infra::database::model::user::repository::UserRepository;
-use crate::application::sign::factory::SignServiceFactory;
-use crate::domain::sign_service::SignService;
+use crate::infra::sign_backend::factory::SignBackendFactory;
+use crate::application::user::DBUserService;
+use crate::domain::sign_service::SignBackend;
 
 pub struct OIDCConfig {
     pub client_id: String,
@@ -34,34 +36,14 @@ pub struct OIDCConfig {
 
 pub struct ControlServer {
     server_config: Arc<RwLock<Config>>,
-    data_key_repository: web::Data<datakeyRepository::DataKeyRepository>,
-    user_repository: web::Data<UserRepository>,
-    token_repository: web::Data<TokenRepository>,
-    sign_service: web::Data<Box<dyn SignService>>
 }
 
 impl ControlServer {
     pub async fn new(server_config: Arc<RwLock<Config>>) -> Result<Self> {
         let database = server_config.read()?.get_table("database")?;
         create_pool(&database).await?;
-        let sign_service = SignServiceFactory::new_engine(
-            server_config.clone(), get_db_pool()?).await?;
-
-        let data_repository = datakeyRepository::DataKeyRepository::new(
-            get_db_pool()?,
-        );
-
-        //initialize user repo
-        let user_repo = UserRepository::new(get_db_pool()?);
-
-        //initialize user repo
-        let token_repo = TokenRepository::new(get_db_pool()?);
         let server = ControlServer {
             server_config,
-            sign_service: web::Data::new(Box::new(sign_service)),
-            data_key_repository: web::Data::new(data_repository),
-            user_repository: web::Data::new(user_repo),
-            token_repository: web::Data::new(token_repo),
         };
         Ok(server)
     }
@@ -112,18 +94,27 @@ impl ControlServer {
 
         info!("control server starts");
         // Start http server
-        let data_key_repository = self.data_key_repository.clone();
-        let user_repository = self.user_repository.clone();
-        let token_repository = self.token_repository.clone();
-        let sign_service = self.sign_service.clone();
+        let data_repository = datakeyRepository::DataKeyRepository::new(
+            get_db_pool()?,
+        );
+        let sign_backend = SignBackendFactory::new_engine(
+            self.server_config.clone(), get_db_pool()?).await?;
+        //initialize user repo
+        let user_repo = UserRepository::new(get_db_pool()?);
+
+        //initialize token repo
+        let token_repo = TokenRepository::new(get_db_pool()?);
+
+        let user_service = web::Data::new(DBUserService::new(user_repo.clone(), token_repo));
+
+        let key_service = web::Data::new(DBKeyService::new(data_repository, sign_backend));
+
         let http_server = HttpServer::new(move || {
             App::new()
                 // enable logger
-                .app_data(data_key_repository.clone())
+                .app_data(key_service.clone())
                 .app_data(client.clone())
-                .app_data(user_repository.clone())
-                .app_data(token_repository.clone())
-                .app_data(sign_service.clone())
+                .app_data(user_service.clone())
                 .app_data(oidc_config.clone())
                 .wrap(middleware::Logger::default())
                 .wrap(IdentityMiddleware::default())

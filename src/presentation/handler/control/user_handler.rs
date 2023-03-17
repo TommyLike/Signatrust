@@ -20,7 +20,7 @@ use crate::infra::database::model::user::repository::UserRepository;
 use crate::domain::token::entity::Token;
 use crate::domain::token::repository::Repository as tokenRepository;
 use crate::domain::user::entity::User;
-
+use crate::application::user::UserService;
 
 
 use crate::presentation::server::control_server::OIDCConfig;
@@ -81,13 +81,13 @@ async fn callback(req: HttpRequest, user_repo: web::Data<UserRepository>, oidc_c
     }
 }
 
-async fn new_token(user: UserIdentity, token_repo: web::Data<TokenRepository>) -> Result<impl Responder, Error> {
-    let token = token_repo.into_inner().create(&Token::new(user.id)?).await?;
+async fn new_token(user: UserIdentity, user_service: web::Data<Box<dyn UserService>>) -> Result<impl Responder, Error> {
+    let token = user_service.into_inner().generate_token(&user).await?;
     Ok(HttpResponse::Ok().json(TokenDTO::from(token)))
 }
 
-async fn list_token(user: UserIdentity, token_repo: web::Data<TokenRepository>) -> Result<impl Responder, Error> {
-    let token = token_repo.into_inner().get_token_by_user_id(user.id).await?;
+async fn list_token(user: UserIdentity, user_service: web::Data<Box<dyn UserService>>) -> Result<impl Responder, Error> {
+    let token = user_service.into_inner().get_token(&user).await?;
     let mut results = vec![];
     for t in token.into_iter() {
         results.push(TokenDTO::from(t));

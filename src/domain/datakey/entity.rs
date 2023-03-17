@@ -123,7 +123,7 @@ pub struct SecDataKey {
 }
 
 impl SecDataKey {
-    pub async fn load(data_key: &DataKey, engine: &Arc<Box<dyn EncryptionEngine>>) -> Result<SecDataKey> {
+    pub async fn load(data_key: &DataKey, engine: &Box<dyn EncryptionEngine>) -> Result<SecDataKey> {
         Ok(Self {
             private_key: SecVec::new(engine.decode(data_key.private_key.clone()).await?),
             public_key: SecVec::new(engine.decode(data_key.public_key.clone()).await?),

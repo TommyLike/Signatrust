@@ -10,44 +10,36 @@ use signatrust::{
     SignStreamResponse,
 };
 use tonic::{Request, Response, Status, Streaming};
+use crate::application::datakey::KeyService;
 use crate::domain::datakey::repository::Repository;
-use crate::domain::sign_service::SignService;
+use crate::domain::sign_service::SignBackend;
 
 
 use crate::util::error::Result as InnerResult;
 use crate::util::signer_container::DataKeyContainer;
 
-pub struct SignHandler<R, S>
+pub struct SignHandler<K>
 where
-    R: Repository,
-    S: SignService
+    K: KeyService + 'static,
 {
-    sign_service: S,
-    container: DataKeyContainer<R>
+    key_service: K,
 }
 
-impl<R, S> SignHandler<R, S>
+impl<K> SignHandler<K>
 where
-    R: Repository,
-    S: SignService
+    K: KeyService + 'static,
 {
-    pub fn new(data_key_repository: R, sign_service: S) -> Self {
+    pub fn new(key_service: K) -> Self {
         SignHandler {
-            container: DataKeyContainer::new(data_key_repository),
-            sign_service,
+            key_service
         }
-    }
-    async fn sign_stream_inner(&self, key_type: String, key_name: String, options: &HashMap<String, String>, data: Vec<u8>) -> InnerResult<Vec<u8>> {
-        self.sign_service.sign(
-            &self.container.get_data_key(key_type, key_name).await?, data, options.clone()).await
     }
 }
 
 #[tonic::async_trait]
-impl<R, S> Signatrust for SignHandler<R, S>
+impl<K> Signatrust for SignHandler<K>
 where
-    R: Repository + 'static,
-    S: SignService + 'static
+    K: KeyService + 'static,
 {
     async fn sign_stream(
         &self,
@@ -65,7 +57,7 @@ where
             key_type = inner_result.key_type;
             options = inner_result.options;
         }
-        match self.sign_stream_inner(key_type, key_name, &options, data).await {
+        match self.key_service.sign(key_type, key_name, &options, data).await {
             Ok(content) => {
                 Ok(Response::new(SignStreamResponse {
                     signature: content,
@@ -82,11 +74,10 @@ where
     }
 }
 
-pub fn get_grpc_handler<R, S>(data_key_repository: R, sign_service: S) -> SignatrustServer<SignHandler<R, S>>
+pub fn get_grpc_handler<K>(key_service: K) -> SignatrustServer<SignHandler<K>>
 where
-    R: Repository + 'static,
-    S: SignService + 'static
+    K: KeyService + 'static
 {
-    let app = SignHandler::new(data_key_repository, sign_service);
+    let app = SignHandler::new(key_service);
     SignatrustServer::new(app)
 }

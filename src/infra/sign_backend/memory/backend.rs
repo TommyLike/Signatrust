@@ -1,6 +1,7 @@
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 
-use crate::domain::sign_service::SignService;
+use crate::domain::sign_service::SignBackend;
 use std::sync::Arc;
 
 use config::Config;
@@ -16,22 +17,22 @@ use crate::infra::sign_plugin::signers::Signers;
 use crate::domain::datakey::entity::DataKey;
 use crate::util::error::Result;
 use async_trait::async_trait;
+use crate::infra::encryption::algorithm::factory::AlgorithmFactory;
 
 
 /// Memory Sign Backend will perform all sensitive operations directly in host memory.
-#[derive(Clone)]
-pub struct MemorySignService {
+pub struct MemorySignBackend {
     server_config: Arc<RwLock<Config>>,
-    engine: Arc<Box<dyn EncryptionEngine>>
+    engine: Box<dyn EncryptionEngine>
 }
 
-impl MemorySignService {
+impl MemorySignBackend {
     /// initialize process
     /// 1. initialize the kms provider
     /// 2. initialize the cluster repo
     /// 2. initialize the encryption engine including the cluster key
     /// 3. initialize the signing plugins
-    pub async fn new(server_config: Arc<RwLock<Config>>, db_pool: DbPool) -> crate::util::error::Result<MemorySignService> {
+    pub async fn new(server_config: Arc<RwLock<Config>>, db_pool: DbPool) -> Result<MemorySignBackend> {
         //initialize the kms backend
         let kms_provider = factory::KMSProviderFactory::new_provider(
             &server_config.read()?.get_table("memory.kms-provider")?
@@ -39,22 +40,29 @@ impl MemorySignService {
         let repository =
             repository::ClusterKeyRepository::new(db_pool);
         let engine_config = server_config.read()?.get_table("memory.encryption-engine")?;
+        let encryptor = AlgorithmFactory::new_algorithm(
+            &engine_config
+                .get("algorithm")
+                .expect("encryption engine should configured")
+                .to_string(),
+        )?;
         let mut engine = EncryptionEngineWithClusterKey::new(
-            Arc::new(Box::new(repository.clone())),
+            repository,
+            encryptor,
             &engine_config,
             kms_provider
         )?;
         engine.initialize().await?;
 
-        Ok(MemorySignService {
+        Ok(MemorySignBackend {
             server_config,
-            engine: Arc::new(Box::new(engine)),
+            engine: Box::new(engine),
         })
     }
 }
 
 #[async_trait]
-impl SignService for MemorySignService {
+impl SignBackend for MemorySignBackend {
     async fn generate_keys(&self, data_key: &mut DataKey) -> Result<()> {
         let (private_key, public_key, certificate) = Signers::generate_keys(&data_key.key_type, &data_key.attributes)?;
         data_key.private_key = self.engine.encode(private_key).await?;

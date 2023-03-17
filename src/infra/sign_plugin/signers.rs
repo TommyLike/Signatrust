@@ -12,10 +12,10 @@ pub struct Signers {}
 impl Signers {
 
     //get responding sign plugin for data signing
-    pub fn load_from_data_key(key_type: &KeyType, data_key: &SecDataKey) -> Result<Arc<Box<dyn SignPlugins>>> {
+    pub fn load_from_data_key(key_type: &KeyType, data_key: &SecDataKey) -> Result<Box<dyn SignPlugins>> {
         match key_type {
-            KeyType::OpenPGP => Ok(Arc::new(Box::new(OpenPGPPlugin::new(data_key)?))),
-            KeyType::X509 => Ok(Arc::new(Box::new(X509Plugin::new(data_key)?))),
+            KeyType::OpenPGP => Ok(Box::new(OpenPGPPlugin::new(data_key)?)),
+            KeyType::X509 => Ok(Box::new(X509Plugin::new(data_key)?)),
         }
     }
 

@@ -13,11 +13,16 @@ use crate::domain::kms_provider::KMSProvider;
 
 pub const KEY_SIZE: usize = 2;
 
-pub struct EncryptionEngineWithClusterKey {
+pub struct EncryptionEngineWithClusterKey<C, K, E>
+where
+    C: ClusterKeyRepository,
+    K: KMSProvider + ?Sized,
+    E: Encryptor + ?Sized
+{
     //cluster key repository
-    cluster_repository: Arc<Box<dyn ClusterKeyRepository>>,
-    kms_provider: Arc<Box<dyn KMSProvider>>,
-    encryptor: Arc<Box<dyn Encryptor>>,
+    cluster_repository: C,
+    kms_provider: Box<K>,
+    encryptor: Box<E>,
     keep_in_days: i64,
     latest_cluster_key: Box<SecClusterKey>,
 }
@@ -30,17 +35,17 @@ pub struct EncryptionEngineWithClusterKey {
 /// 1. key id: is the cluster key used for encryption, fixed size
 /// 2. nonce: the random bytes used for encryption. fixed size
 /// 3. encrypted data: the encrypted content
-impl EncryptionEngineWithClusterKey {
+impl<C, K, E> EncryptionEngineWithClusterKey<C, K, E>
+where
+    C: ClusterKeyRepository,
+    K: KMSProvider + ?Sized,
+    E: Encryptor + ?Sized
+{
     pub fn new(
-        cluster_repository: Arc<Box<dyn ClusterKeyRepository>>,
-        config: &HashMap<String, Value>, kms_provider: Arc<Box<dyn KMSProvider>>,
-    ) -> Result<Self> {
-        let encryptor = AlgorithmFactory::new_algorithm(
-            &config
-                .get("algorithm")
-                .expect("encryption engine should configured")
-                .to_string(),
-        )?;
+        cluster_repository: C,
+        encryptor: Box<E>,
+        config: &HashMap<String, Value>,
+        kms_provider: Box<K>) -> Result<Self> {
         Ok(EncryptionEngineWithClusterKey {
             cluster_repository,
             encryptor,
@@ -54,8 +59,6 @@ impl EncryptionEngineWithClusterKey {
 
         })
     }
-}
-impl EncryptionEngineWithClusterKey {
     fn append_cluster_key_hex(&self, data: &mut Vec<u8>) -> Vec<u8> {
         let mut result = vec![];
         result.append(&mut key::decode_hex_string_to_u8(&format!(
@@ -72,8 +75,14 @@ impl EncryptionEngineWithClusterKey {
         SecClusterKey::load( self.cluster_repository.get_by_id(cluster_id).await?, &self.kms_provider).await
     }
 }
+
 #[async_trait]
-impl EncryptionEngine for EncryptionEngineWithClusterKey {
+impl<C, K, E> EncryptionEngine for EncryptionEngineWithClusterKey<C, K, E>
+where
+    C: ClusterKeyRepository,
+    K: KMSProvider + ?Sized,
+    E: Encryptor + ?Sized
+{
     async fn initialize(&mut self) -> Result<()> {
         //generate new symmetric keys when there is no db record
         let key = self

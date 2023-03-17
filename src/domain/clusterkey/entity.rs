@@ -75,7 +75,8 @@ impl Default for SecClusterKey {
 
 
 impl SecClusterKey {
-    pub async fn load(cluster_key: ClusterKey, kms_provider: &Arc<Box<dyn KMSProvider>>) -> Result<SecClusterKey> {
+    pub async fn load<K>(cluster_key: ClusterKey, kms_provider: &Box<K>) -> Result<SecClusterKey>
+    where K: KMSProvider + ?Sized {
         Ok(Self {
             id: cluster_key.id,
             data: SecVec::new(key::decode_hex_string_to_u8(

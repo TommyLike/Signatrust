@@ -10,11 +10,13 @@ use tonic::{
         Identity, Server, ServerTlsConfig,
     },
 };
+use crate::application::datakey::DBKeyService;
 
 use crate::infra::database::model::datakey::repository;
 use crate::infra::database::pool::{create_pool, get_db_pool};
-use crate::application::sign::factory::SignServiceFactory;
-use crate::domain::sign_service::SignService;
+use crate::infra::sign_backend::factory::SignBackendFactory;
+use crate::domain::datakey::repository::Repository;
+use crate::domain::sign_service::SignBackend;
 use crate::presentation::handler::data::sign_handler::get_grpc_handler;
 use crate::util::error::Result;
 
@@ -24,22 +26,17 @@ pub struct DataServer
     signal: Arc<AtomicBool>,
     server_identity: Option<Identity>,
     ca_cert: Option<Certificate>,
-    data_key_repository: repository::DataKeyRepository,
 }
 
-impl DataServer
-{
+impl DataServer {
     pub async fn new(server_config: Arc<RwLock<Config>>, signal: Arc<AtomicBool>) -> Result<Self> {
         let database = server_config.read()?.get_table("database")?;
         create_pool(&database).await?;
-        let data_repository = repository::DataKeyRepository::new(
-            get_db_pool()?);
         let mut server = DataServer {
             server_config,
             signal,
             server_identity: None,
             ca_cert: None,
-            data_key_repository: data_repository,
         };
         server.load().await?;
         Ok(server)
@@ -91,17 +88,20 @@ impl DataServer
 
         let mut server = Server::builder();
         info!("data server starts");
-        let sign_service = SignServiceFactory::new_engine(
+        let sign_backend = SignBackendFactory::new_engine(
             self.server_config.clone(), get_db_pool()?).await?;
+        let data_repository = repository::DataKeyRepository::new(
+            get_db_pool()?);
+        let key_service = DBKeyService::new(data_repository, sign_backend);
         if let Some(identity) = self.server_identity.clone() {
             server
                 .tls_config(ServerTlsConfig::new().identity(identity).client_ca_root(self.ca_cert.clone().unwrap()))?
-                .add_service(get_grpc_handler(self.data_key_repository.clone(), sign_service.clone()))
+                .add_service(get_grpc_handler(key_service))
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         } else {
             server
-                .add_service(get_grpc_handler(self.data_key_repository.clone(), sign_service.clone()))
+                .add_service(get_grpc_handler(key_service))
                 .serve_with_shutdown(addr, self.shutdown_signal())
                 .await?
         }
